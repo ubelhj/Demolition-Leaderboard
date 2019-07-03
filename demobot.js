@@ -22,7 +22,7 @@ client.on("message", message => {
                 "E: # of exterminations U: Your Username");
         }
         var content = "Username,Demolitions,Exterminations\n" + args[5] + "," + args[0] + "," + args[2];
-        fs.writeFile("leaderboard.csv" )
+        fs.writeFile("leaderboard.csv" );
     }
 });
 
