@@ -3,7 +3,6 @@
   <component name="CheckStyle-IDEA">
     <option name="configuration">
       <map>
-        <entry key="active-configuration" value="HTTP_URL:https://courses.cs.washington.edu/courses/cse373/19sp/files/cse373-checkstyle-rules.xml:CSE 373 Style" />
         <entry key="checkstyle-version" value="8.18" />
         <entry key="copy-libs" value="true" />
         <entry key="location-0" value="BUNDLED:(bundled):Sun Checks" />
