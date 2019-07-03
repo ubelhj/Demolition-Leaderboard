@@ -15,40 +15,32 @@ client.on("message", message => {
     // This is the best way to define args. Trust me.
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
     console.log(args);
-    if (args.length < 5 || args.length > 8) {
-        message.author.DMchannel.send("Try updating your stats with the following format: D: # of demos " +
+    if (args.length < 4 || args.length > 8) {
+        message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations U: Your Username");
+    } else if (isNaN(args[0]) || isNaN(args[2])) {
+        message.channel.send("Try updating your stats with the following format: D: # of demos " +
+            "E: # of exterminations U: Your Username");
+    } else if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
+        message.channel.send("Your Demos are in the top 20, and must be verified. Please DM JerryTheBee");
+    } else if (parseInt(args[2], 10) > parseInt(highscores.manualExtermLimit, 10)) {
+        message.channel.send("Your Exterminations are in the top 20, " +
+             "and must be verified. Please DM JerryTheBee");
     } else {
-        if (isNaN(args[0]) || isNaN(args[2])) {
-            message.author.DMchannel.send("Try updating your stats with the following format: D: # of demos " +
-                "E: # of exterminations U: Your Username");
-            console.log("failed");
-            return;
-        }
-        if (args[0] > highscores.manualDemoLimit) {
-            message.author.DMchannel.send("Your Demos are too high, and must be verified. Please DM JerryTheBee");
-            return;
-        }
-        if (args[2] > highscores.manualExtermLimit) {
-            message.author.DMchannel.send("Your Exterminations are too high, " +
-                "and must be verified. Please DM JerryTheBee");
-            return;
-        }
-
         var name = "";
 
-        if (args.length > 5) {
-            for (int i = 4; i < args.length; i++) {
-                name = name + args[i];
+        if (args.length > 4) {
+            for (var i = 3; i < args.length; i++) {
+                name = name + " " + args[i];
             }
         } else {
-            name = args[4];
+            name = args[3];
         }
 
         var content = "\n" + name + "," + args[0] + "," + args[2];
 
         fs.appendFile("leaderboard.csv", content);
-        message.author.DMchannel.send("Logged Leaderboard Data");
+        // //dmChannel.send("Logged Leaderboard Data");
     }
 });
 
