@@ -8,6 +8,7 @@ client.on("ready", () => {
 });
 
 client.on("message", message => {
+    if (message.channel.equals("596091609955958785")) console.log("wrong channel error");
     if (message.author.bot) return;
     if(message.content.indexOf(config.prefix) !== 0) return;
     // This is the best way to define args. Trust me.
@@ -17,12 +18,15 @@ client.on("message", message => {
         message.author.DMchannel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations U: Your Username");
     } else {
-        if (isNaN(args[0] || isNaN(args[2]))) {
+        if (isNaN(args[0]) || isNaN(args[2])) {
             message.author.DMchannel.send("Try updating your stats with the following format: D: # of demos " +
                 "E: # of exterminations U: Your Username");
+            console.log("failed");
         }
-        var content = "Username,Demolitions,Exterminations\n" + args[5] + "," + args[0] + "," + args[2];
-        fs.writeFile("leaderboard.csv" );
+        var content = "\n" + args[4] + "," + args[0] + "," + args[2];
+        // var leaderboard = fs.read("leaderboard.csv");
+
+        fs.appendFile("leaderboard.csv", content);
     }
 });
 
