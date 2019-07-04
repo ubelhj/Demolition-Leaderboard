@@ -6,12 +6,12 @@ const highscores = require("./highscores.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
-let dbx = new Dropbox({accessToken:"TOKEN HERE", fetch: fetch});
+let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 
 
 
 client.on("ready", () => {
-    dbx.filesDownload({path: "/demoleaderboard/leaderboard.json"})
+    dbx.filesDownload({path: "/leaderboard.json"})
         .then(function (data) {
             fs.writeFile("./leaderboard.json", data.fileBinary, 'binary', function (err) {
                 if (err) { throw err; }
@@ -98,7 +98,7 @@ client.on("message", message => {
 
         fs.appendFile("leaderboard.csv", content);
 
-        dbx.filesUpload({path: '/demoleaderboard/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+        dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
             .catch(function(error) {
                 console.error(error);
             });
