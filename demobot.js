@@ -26,6 +26,10 @@ client.on("ready", () => {
         console.log('Express server listening on' + process.env.PORT);
     });
     console.log("I am ready!");
+    // keeps awake
+    setInterval(function() {
+        http.get("https://demo-leaderboard.herokuapp.com/");
+    }, 300000);
 });
 
 client.on("message", message => {
