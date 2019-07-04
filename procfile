@@ -1,1 +1,1 @@
-worker: demobot.js
+web: demobot.js
