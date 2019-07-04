@@ -6,6 +6,7 @@ const highscores = require("./highscores.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
+const http = require('http');
 let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch});
 
 
@@ -21,6 +22,9 @@ client.on("ready", () => {
         .catch(function (err) {
             throw err;
         });
+    http.createServer().listen(process.env.PORT, function () {
+        console.log('Express server listening on' + process.env.PORT);
+    });
     console.log("I am ready!");
 });
 
