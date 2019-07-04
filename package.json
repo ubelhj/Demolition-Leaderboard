@@ -10,6 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^11.5.1"
+    "discord.js": "^11.5.1",
+    "dropbox": "^4.0.28",
+    "es6-promise": "^4.2.8",
+    "isomorphic-fetch": "^2.2.1"
   }
 }

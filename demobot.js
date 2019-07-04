@@ -1,11 +1,26 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
 const config = require("./config.json");
-const leaderboardJson = require("./leaderboard.json");
+const leaderboard = require("./leaderboard.json");
 const highscores = require("./highscores.json");
 const fs = require('fs');
+const fetch = require('isomorphic-fetch');
+const Dropbox = require('dropbox').Dropbox;
+let dbx = new Dropbox({accessToken:"TOKEN HERE", fetch: fetch});
+
+
 
 client.on("ready", () => {
+    dbx.filesDownload({path: "/demoleaderboard/leaderboard.json"})
+        .then(function (data) {
+            fs.writeFile("./leaderboard.json", data.fileBinary, 'binary', function (err) {
+                if (err) { throw err; }
+                console.log('File: ' + data.name + ' saved.');
+            });
+        })
+        .catch(function (err) {
+            throw err;
+        });
     console.log("I am ready!");
 });
 
@@ -24,21 +39,19 @@ client.on("message", message => {
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
     } else {
         // Sets name variable for long names
-        var name = "";
+        let name = "";
         if (args.length > 4) {
-            for (var i = 3; i < args.length; i++) {
+            for (let i = 3; i < args.length; i++) {
                 name = name + " " + args[i];
             }
         } else {
             name = args[3];
         }
 
-        var leaderboard = leaderboardJson;
-
         console.log(leaderboard.hasOwnProperty(name));
         console.log(leaderboard[name]);
 
-        var author = message.author.id;
+        let author = message.author.id;
 
         if (!leaderboard[name]) {
             leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
@@ -50,16 +63,28 @@ client.on("message", message => {
             if (leaderboard[name].Authorized == 0) {
                 if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
                     message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
-                        "(A top 20 submission requires manual review from an admin and consequently may take longer to be " +
-                        "accepted). A screenshot may be requested if your submission is suspect or results in a significant " +
-                        "change in position. If you have any questions, please contact JerryTheBee");
+                        "(A top 20 submission requires manual review from an admin and consequently may take " +
+                        "longer to be accepted). A screenshot may be requested if your submission is suspect or " +
+                        "results in a significant change in position. If you have any questions, " +
+                        "please contact an admin or JerryTheBee");
                 } else if (parseInt(args[2], 10) > parseInt(highscores.manualExtermLimit, 10)) {
                     message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
-                        "(A top 20 submission requires manual review from an admin and consequently may take longer to be " +
-                        "accepted). A screenshot may be requested if your submission is suspect or results in a significant " +
-                        "change in position. If you have any questions, please contact JerryTheBee");
+                        "(A top 20 submission requires manual review from an admin and consequently may take " +
+                        "longer to be accepted). A screenshot may be requested if your submission is suspect or " +
+                        "results in a significant change in position. If you have any questions, " +
+                        "please contact an admin or JerryTheBee");
                 }
             }
+            if (author != leaderboard.toothboto.Discord) {
+                if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
+                    message.channel.send("Congrats on the top place for Demos! " +
+                        "Please send verification to an admin before we can verify your spot.");
+                }  else if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10))  {
+                    message.channel.send("Congrats on the top place for Exterminations! " +
+                        "Please send verification to an admin before we can verify your spot.");
+                }
+            }
+
             leaderboard[name].Demos = args[0];
             leaderboard[name].Exterminations = args[2];
         } else {
@@ -67,11 +92,16 @@ client.on("message", message => {
                 "Please DM JerryTheBee if something is wrong");
         }
 
-        fs.writeFile("leaderboard.json", JSON.stringify(leaderboardJson));
+        fs.writeFile("leaderboard.json", JSON.stringify(leaderboard));
 
-        var content = "\n" + name + "," + args[0] + "," + args[2];
+        let content = "\n" + name + "," + args[0] + "," + args[2];
 
         fs.appendFile("leaderboard.csv", content);
+
+        dbx.filesUpload({path: '/demoleaderboard/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+            .catch(function(error) {
+                console.error(error);
+            });
     }
 });
 
