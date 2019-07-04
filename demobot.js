@@ -25,7 +25,7 @@ client.on("ready", () => {
 });
 
 client.on("message", message => {
-    if (message.channel.equals("596091609955958785")) console.log("wrong channel error");
+    if (message.channel.equals("431088274636013579")) console.log("wrong channel error");
     if (message.author.bot) return;
     if(message.content.indexOf(config.prefix) !== 0) return;
     // This is the best way to define args. Trust me.
