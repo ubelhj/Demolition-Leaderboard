@@ -12,6 +12,7 @@ let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch});
 
 
 client.on("ready", () => {
+    // downloads and saves dropbox file
     dbx.filesDownload({path: "/leaderboard.json"})
         .then(function (data) {
             fs.writeFile("./leaderboard.json", data.fileBinary, 'binary', function (err) {
@@ -22,6 +23,7 @@ client.on("ready", () => {
         .catch(function (err) {
             throw err;
         });
+    // connects to server to please heroku
     http.createServer().listen(process.env.PORT, function () {
         console.log('Express server listening on' + process.env.PORT);
     });
