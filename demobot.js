@@ -6,7 +6,7 @@ const highscores = require("./highscores.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
-let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
+let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch});
 
 
 
@@ -27,7 +27,7 @@ client.on("ready", () => {
 client.on("message", message => {
     if (message.channel.equals("431088274636013579")) console.log("wrong channel error");
     if (message.author.bot) return;
-    if(message.content.indexOf(config.prefix) !== 0) return;
+    if(message.content.indexOf(process.env.prefix) !== 0) return;
     // This is the best way to define args. Trust me.
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
     console.log(args);
@@ -105,4 +105,4 @@ client.on("message", message => {
     }
 });
 
-client.login(config.token);
+client.login(process.env.token);
