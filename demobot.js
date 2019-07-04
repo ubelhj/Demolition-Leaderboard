@@ -110,6 +110,7 @@ client.on("message", message => {
         // fs.appendFile("leaderboard.csv", content);
 
         if (changed) {
+            message.channel.send("Updated Leaderboard!");
             dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
                 .catch(function (error) {
                     console.error(error);
