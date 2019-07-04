@@ -90,8 +90,7 @@ client.on("message", message => {
                     leaderboard[name].Exterminations = args[2];
                     changed = true;
                 }
-            }
-            if (author != leaderboard.toothboto.Discord) {
+            } else if (author != leaderboard.toothboto.Discord) {
                 if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
                     message.channel.send("Congrats on the top place for Demos! " +
                         "Please send verification to an admin before we can verify your spot.");
