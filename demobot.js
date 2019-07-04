@@ -1,6 +1,6 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
-const config = require("./config.json");
+// const config = require("./config.json");
 const leaderboard = require("./leaderboard.json");
 const highscores = require("./highscores.json");
 const fs = require('fs');
@@ -29,7 +29,7 @@ client.on("message", message => {
     if (message.author.bot) return;
     if(message.content.indexOf(process.env.prefix) !== 0) return;
     // This is the best way to define args. Trust me.
-    const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
+    const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g);
     console.log(args);
     if (args.length < 4 || args.length > 8) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
