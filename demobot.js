@@ -51,6 +51,8 @@ client.on("message", message => {
         console.log(leaderboard.hasOwnProperty(name));
         console.log(leaderboard[name]);
 
+        var changed = false;
+
         let author = message.author.id;
 
         if (!leaderboard[name]) {
@@ -73,6 +75,10 @@ client.on("message", message => {
                         "longer to be accepted). A screenshot may be requested if your submission is suspect or " +
                         "results in a significant change in position. If you have any questions, " +
                         "please contact an admin or JerryTheBee");
+                } else {
+                    leaderboard[name].Demos = args[0];
+                    leaderboard[name].Exterminations = args[2];
+                    changed = true;
                 }
             }
             if (author != leaderboard.toothboto.Discord) {
@@ -82,11 +88,12 @@ client.on("message", message => {
                 }  else if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10))  {
                     message.channel.send("Congrats on the top place for Exterminations! " +
                         "Please send verification to an admin before we can verify your spot.");
+                } else {
+                    leaderboard[name].Demos = args[0];
+                    leaderboard[name].Exterminations = args[2];
+                    changed = true;
                 }
             }
-
-            leaderboard[name].Demos = args[0];
-            leaderboard[name].Exterminations = args[2];
         } else {
             message.channel.send("Cannot update leaderboard for other users, " +
                 "Please DM JerryTheBee if something is wrong");
@@ -98,10 +105,12 @@ client.on("message", message => {
 
         // fs.appendFile("leaderboard.csv", content);
 
-        dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
-            .catch(function(error) {
-                console.error(error);
-            });
+        if (changed) {
+            dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+                .catch(function (error) {
+                    console.error(error);
+                });
+        }
     }
 });
 
