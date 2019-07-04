@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
 const config = require("./config.json");
-const leaderboard = require("./leaderboard.json");
+const leaderboardJson = require("./leaderboard.json");
 const highscores = require("./highscores.json");
 const fs = require('fs');
 
@@ -18,15 +18,20 @@ client.on("message", message => {
     console.log(args);
     if (args.length < 4 || args.length > 8) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
-            "E: # of exterminations Your Username");
+            "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
     } else if (isNaN(args[0]) || isNaN(args[2])) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
-            "E: # of exterminations Your Username");
+            "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
     } else if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
-        message.channel.send("Your Demos are in the top 20, and must be verified. Please DM JerryTheBee");
+        message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
+            "(A top 20 submission requires manual review from an admin and consequently may take longer to be " +
+            "accepted). A screenshot may be requested if your submission is suspect or results in a significant " +
+            "change in position. If you have any questions, please contact JerryTheBee");
     } else if (parseInt(args[2], 10) > parseInt(highscores.manualExtermLimit, 10)) {
-        message.channel.send("Your Exterminations are in the top 20, " +
-             "and must be verified. Please DM JerryTheBee");
+        message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
+            "(A top 20 submission requires manual review from an admin and consequently may take longer to be " +
+            "accepted). A screenshot may be requested if your submission is suspect or results in a significant " +
+            "change in position. If you have any questions, please contact JerryTheBee");
     } else {
         // Sets name variable for long names
         var name = "";
@@ -38,37 +43,33 @@ client.on("message", message => {
             name = args[3];
         }
 
-        console.log(leaderboard.name);
+        var leaderboard = leaderboardJson.Leaderboard;
 
-        // fs.readFile('./leaderboard.json', function (err, data) {
-        //     var parsedBoard = JSON.parse(data);
-        //
-        //     var author = message.author.id;
-        //     if (!parsedBoard.name) {
-        //         parsedBoard.push
-        //     }
-        //     if (!parsedBoard.name.Discord) {
-        //         parsedBoard.name.Discord = author;
-        //     }
-        //     if (parsedBoard.name.Discord.equals(author)) {
-        //         parsedBoard.name.Demos = args[0];
-        //         parsedBoard.name.Exterminations = args[2];
-        //     } else {
-        //         message.channel.send("Cannot update leaderboard for other users, " +
-        //             "Please DM JerryTheBee if something is wrong");
-        //     }
-        //
-        //     fs.writeFile("./leaderboard.json", JSON.stringify(parsedBoard), function (err) {
-        //         if (err) return console.log(err);
-        //         console.log(JSON.stringify(parsedBoard));
-        //     });
-        // });
+        console.log(leaderboard.Car);
+        console.log(leaderboard.hasOwnProperty(name));
+        console.log(leaderboard[name]);
+
+        var author = message.author.id;
+
+        if (!leaderboard[name]) {
+            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+        }
+        if (!leaderboard[name].Discord) {
+            leaderboard[name].Discord = author;
+        }
+        if (leaderboard[name].Discord == author) {
+            leaderboard[name].Demos = args[0];
+            leaderboard[name].Exterminations = args[2];
+        } else {
+            message.channel.send("Cannot update leaderboard for other users, " +
+                "Please DM JerryTheBee if something is wrong");
+        }
+
+        fs.writeFile("leaderboard.json", JSON.stringify(leaderboardJson));
 
         var content = "\n" + name + "," + args[0] + "," + args[2];
 
         fs.appendFile("leaderboard.csv", content);
-        // //dmChannel.send("Logged Leaderboard Data");
-
     }
 });
 
