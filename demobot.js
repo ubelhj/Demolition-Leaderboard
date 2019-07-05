@@ -24,16 +24,16 @@ client.on("ready", () => {
         .catch(function (err) {
             throw err;
         });
-    // dbx.filesDownload({path: "/leaderboard.csv"})
-    //     .then(function (data) {
-    //         fs.writeFile("./leaderboard.csv", data.fileBinary, 'binary', function (err) {
-    //             if (err) { throw err; }
-    //             console.log('File: ' + data.name + ' saved.');
-    //         });
-    //     })
-    //     .catch(function (err) {
-    //         throw err;
-    //     });
+    dbx.filesDownload({path: "/leaderboard.csv"})
+        .then(function (data) {
+            fs.writeFile("./leaderboard.csv", data.fileBinary, 'binary', function (err) {
+                if (err) { throw err; }
+                console.log('File: ' + data.name + ' saved.');
+            });
+        })
+        .catch(function (err) {
+            throw err;
+        });
     // connects to server to please heroku
     http.createServer().listen(process.env.PORT, function () {
         console.log('Express server listening on' + process.env.PORT);
@@ -121,19 +121,19 @@ client.on("message", message => {
 
         // fs.writeFile("leaderboard.json", JSON.stringify(leaderboard));
 
-        // let content = "\n" + name + "," + args[0] + "," + args[2];
+        let content = "\n" + name + "," + args[0] + "," + args[2];
 
-        // fs.appendFile("leaderboard.csv", content);
+        fs.appendFile("leaderboard.csv", content);
 
         if (changed) {
             // const { parse } = require('json2csv');
             //
             // try {
             //     const csv = parse(leaderboard);
-            //     dbx.filesUpload({path: '/leaderboard.csv', contents: JSON.stringify(leaderboard), mode: "overwrite"})
-            //         .catch(function (error) {
-            //             console.error(error);
-            //         });
+                dbx.filesUpload({path: '/leaderboard.csv', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+                    .catch(function (error) {
+                        console.error(error);
+                    });
             // } catch (err) {
             //     console.error(err);
             // }
