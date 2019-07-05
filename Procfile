@@ -1,1 +1,1 @@
-worker: demobot
+worker: npm start
