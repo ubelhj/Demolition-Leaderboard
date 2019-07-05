@@ -30,7 +30,7 @@ client.on("ready", () => {
     console.log("I am ready!");
     // keeps awake
     setInterval(function() {
-        http.get("https://demo-leaderboard.herokuapp.com/");
+        http.get("http://demo-leaderboard.herokuapp.com/");
     }, 300000);
 });
 
