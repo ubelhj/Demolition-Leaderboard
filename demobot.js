@@ -130,8 +130,10 @@ client.on("message", message => {
             console.log('Appended CSV');
         });
 
+        const leaderboardCSV = require('./leaderboard.csv');
+
         if (changed) {
-            dbx.filesUpload({path: '/leaderboard.csv', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+            dbx.filesUpload({path: '/leaderboard.csv', contents: leaderboardCSV, mode: "overwrite"})
                 .catch(function (error) {
                     console.error(error);
                 });
