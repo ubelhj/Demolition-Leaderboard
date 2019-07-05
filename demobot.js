@@ -119,21 +119,21 @@ client.on("message", message => {
                 "Please DM JerryTheBee if something is wrong");
         }
 
-        // fs.writeFile("leaderboard.json", JSON.stringify(leaderboard));
+        fs.writeFile("leaderboard.json", JSON.stringify(leaderboard));
 
         let content = "\n" + name + "," + args[0] + "," + args[2];
 
-        fs.appendFile("leaderboard.csv", content);
+        fs.appendFile("./leaderboard.csv", content);
 
         if (changed) {
             // const { parse } = require('json2csv');
             //
             // try {
-            //     const csv = parse(leaderboard);
-                dbx.filesUpload({path: '/leaderboard.csv', contents: JSON.stringify(leaderboard), mode: "overwrite"})
-                    .catch(function (error) {
-                        console.error(error);
-                    });
+        //     const csv = parse(leaderboard);
+            dbx.filesUpload({path: '/leaderboard.csv', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+                .catch(function (error) {
+                    console.error(error);
+                });
             // } catch (err) {
             //     console.error(err);
             // }
