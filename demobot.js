@@ -7,7 +7,6 @@ const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
 const http = require('http');
-// const toCSV = require('json2csv');
 let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch});
 
 
@@ -119,24 +118,23 @@ client.on("message", message => {
                 "Please DM JerryTheBee if something is wrong");
         }
 
-        fs.writeFile("leaderboard.json", JSON.stringify(leaderboard));
+        fs.writeFile("leaderboard.json", JSON.stringify(leaderboard), (err) => {
+            if (err) throw err;
+            console.log('Wrote Json');
+        });
 
         let content = "\n" + name + "," + args[0] + "," + args[2];
 
-        fs.appendFile("./leaderboard.csv", content);
+        fs.appendFile("leaderboard.csv", content, (err) => {
+            if (err) throw err;
+            console.log('Appended CSV');
+        });
 
         if (changed) {
-            // const { parse } = require('json2csv');
-            //
-            // try {
-        //     const csv = parse(leaderboard);
             dbx.filesUpload({path: '/leaderboard.csv', contents: JSON.stringify(leaderboard), mode: "overwrite"})
                 .catch(function (error) {
                     console.error(error);
                 });
-            // } catch (err) {
-            //     console.error(err);
-            // }
 
             message.channel.send("Updated Leaderboard!");
             dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
