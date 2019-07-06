@@ -50,10 +50,29 @@ client.on("message", message => {
     if(message.content.indexOf(process.env.prefix) !== 0) return;
     // This is the best way to define args. Trust me.
     const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g);
+    let author = message.author.id;
     // Ensures proper command syntax
     if (args.length < 4 || args.length > 8) {
-        message.channel.send("Try updating your stats with the following format: D: # of demos " +
-            "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
+        if (author == leaderboard.Car.Discord) {
+            let name = "";
+            if (args.length > 3) {
+                for (let i = 2; i < args.length; i++) {
+                    name = name + " " + args[i];
+                }
+            } else {
+                name = args[3];
+            }
+            // D: Authorize DISCORDID name
+            if (args[0] == "Authorize") {
+                leaderboard[name].Discord = args[1];
+                leaderboard[name].Authorized = 1;
+                upload(message);
+                console.log("Authorized " + name);
+            }
+        } else {
+            message.channel.send("Try updating your stats with the following format: D: # of demos " +
+                "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
+        }
     } else if (isNaN(args[0]) || isNaN(args[2])) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
@@ -73,7 +92,6 @@ client.on("message", message => {
 
         var changed = false;
 
-        let author = message.author.id;
 
         if (!leaderboard[name]) {
             leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
@@ -89,6 +107,7 @@ client.on("message", message => {
             changed = true;
         // ensures only proper user can change their data
         } else if (leaderboard[name].Discord == author) {
+            // only authorized users can upload
             if (leaderboard[name].Authorized == 0) {
                 if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
                     message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
