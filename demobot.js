@@ -138,13 +138,13 @@ client.on("message", message => {
         });
 
         if (changed) {
-            upload();
+            upload(message);
         }
     }
 });
 
 // uploads updated files to dropbox
-function upload() {
+function upload(message) {
     fs.readFile("leaderboard.csv", function (err, data) {
         if (err) {
             throw err;
