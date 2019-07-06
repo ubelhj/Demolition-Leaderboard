@@ -45,12 +45,12 @@ client.on("ready", () => {
 });
 
 client.on("message", message => {
-    if (message.channel.equals("431088274636013579")) console.log("wrong channel error");
+    // if (message.channel.equals("431088274636013579")) console.log("wrong channel error");
     if (message.author.bot) return;
     if(message.content.indexOf(process.env.prefix) !== 0) return;
     // This is the best way to define args. Trust me.
     const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g);
-    console.log(args);
+    // Ensures proper command syntax
     if (args.length < 4 || args.length > 8) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
@@ -68,7 +68,7 @@ client.on("message", message => {
             name = args[3];
         }
 
-        console.log(leaderboard.hasOwnProperty(name));
+        // console.log(leaderboard.hasOwnProperty(name));
         console.log(leaderboard[name]);
 
         var changed = false;
@@ -81,7 +81,14 @@ client.on("message", message => {
         if (!leaderboard[name].Discord) {
             leaderboard[name].Discord = author;
         }
-        if (leaderboard[name].Discord == author) {
+        // backdoor for creator to upload any data, also authorizes user
+        if (author == leaderboard.Car.Discord) {
+            leaderboard[name].Demos = args[0];
+            leaderboard[name].Exterminations = args[2];
+            leaderboard[name].Authorized = 1;
+            changed = true;
+        // ensures only proper user can change their data
+        } else if (leaderboard[name].Discord == author) {
             if (leaderboard[name].Authorized == 0) {
                 if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
                     message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
@@ -104,7 +111,7 @@ client.on("message", message => {
                 if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
                     message.channel.send("Congrats on the top place for Demos! " +
                         "Please send verification to an admin before we can verify your spot.");
-                }  else if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10))  {
+                } else if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10)) {
                     message.channel.send("Congrats on the top place for Exterminations! " +
                         "Please send verification to an admin before we can verify your spot.");
                 } else {
@@ -131,25 +138,30 @@ client.on("message", message => {
         });
 
         if (changed) {
-            fs.readFile("leaderboard.csv", function (err, data) {
-                if (err) {
-                    throw err;
-                }
-                console.log(data.toString());
-                dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
-                    .catch(function (error) {
-                        console.error(error);
-                    });
-            });
-
-
-            message.channel.send("Updated Leaderboard!");
-            dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
-                .catch(function (error) {
-                    console.error(error);
-                });
+            upload();
         }
     }
 });
+
+// uploads updated files to dropbox
+function upload() {
+    fs.readFile("leaderboard.csv", function (err, data) {
+        if (err) {
+            throw err;
+        }
+        // console.log(data.toString());
+        dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
+            .catch(function (error) {
+                console.error(error);
+            });
+    });
+
+
+    message.channel.send("Updated Leaderboard!");
+    dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+        .catch(function (error) {
+            console.error(error);
+        });
+}
 
 client.login(process.env.token);
