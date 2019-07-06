@@ -79,7 +79,8 @@ client.on("message", message => {
         // Sets name variable for long names
         let name = "";
         if (args.length > 4) {
-            for (let i = 3; i < args.length; i++) {
+            name = args[3];
+            for (let i = 4; i < args.length; i++) {
                 name = name + " " + args[i];
             }
         } else {
