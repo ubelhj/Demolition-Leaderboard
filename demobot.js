@@ -60,7 +60,7 @@ client.on("message", message => {
                     name = name + " " + args[i];
                 }
             } else {
-                name = args[3];
+                name = args[2];
             }
             // D: Authorize DISCORDID name
             if (args[0] == "Authorize") {
