@@ -55,12 +55,14 @@ client.on("message", message => {
     if (author == leaderboard.Car.Discord && args[0] == "Authorize") {
         let name = "";
         if (args.length > 3) {
-            for (let i = 2; i < args.length; i++) {
+            name = args[2];
+            for (let i = 3; i < args.length; i++) {
                 name = name + " " + args[i];
             }
         } else {
             name = args[2];
         }
+        console.log(name);
         leaderboard[name].Discord = args[1];
         leaderboard[name].Authorized = 1;
         upload(message);
