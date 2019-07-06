@@ -52,27 +52,25 @@ client.on("message", message => {
     const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g);
     let author = message.author.id;
     // Ensures proper command syntax
-    if (args.length < 4 || args.length > 8) {
-        if (author == leaderboard.Car.Discord) {
-            let name = "";
-            if (args.length > 3) {
-                for (let i = 2; i < args.length; i++) {
-                    name = name + " " + args[i];
-                }
-            } else {
-                name = args[2];
-            }
-            // D: Authorize DISCORDID name
-            if (args[0] == "Authorize") {
-                leaderboard[name].Discord = args[1];
-                leaderboard[name].Authorized = 1;
-                upload(message);
-                console.log("Authorized " + name);
+    if (author == leaderboard.Car.Discord) {
+        let name = "";
+        if (args.length > 3) {
+            for (let i = 2; i < args.length; i++) {
+                name = name + " " + args[i];
             }
         } else {
-            message.channel.send("Try updating your stats with the following format: D: # of demos " +
-                "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
+            name = args[2];
         }
+        // D: Authorize DISCORDID name
+        if (args[0] == "Authorize") {
+            leaderboard[name].Discord = args[1];
+            leaderboard[name].Authorized = 1;
+            upload(message);
+            console.log("Authorized " + name);
+        }
+    } else if (args.length < 4 || args.length > 8) {
+        message.channel.send("Try updating your stats with the following format: D: # of demos " +
+            "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
     } else if (isNaN(args[0]) || isNaN(args[2])) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
