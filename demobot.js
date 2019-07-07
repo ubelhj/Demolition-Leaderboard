@@ -72,7 +72,7 @@ client.on("message", message => {
     } else if (args.length < 4 || args.length > 8) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
-    } else if (isNaN(args[0]) || isNaN(args[2])) {
+    } else if (isNaN(parseInt(args[0])) || isNaN(parseInt(args[2]))) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
     } else {
