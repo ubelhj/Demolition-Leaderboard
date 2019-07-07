@@ -94,7 +94,7 @@ client.on("message", message => {
 
     // Ensures proper command syntax
     // Prevents short or long commands from messing up data
-    } else if (args.length < 4 || args.length > 8) {
+    } else if (args.length < 3 || args.length > 8) {
         message.channel.send("Try updating your stats with the following format: D: # of demos " +
             "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
 
