@@ -152,7 +152,7 @@ client.on("message", message => {
         if (author == leaderboard.Car.Discord) {
             if (name == null) {
                 if (idmap[author]) {
-                    name = idmap[author]
+                    name = idmap[author];
                 }
             }
             leaderboard[name].Demos = args[0];
@@ -162,7 +162,10 @@ client.on("message", message => {
         // Ensures only the Discord ID associated with a score can change their data
         } else {
             if (idmap[author]) {
-                name = idmap[author]
+                name = idmap[author];
+            } else {
+                message.channel.send("Account isn't mapped to a name, try again including a name");
+                return;
             }
             if (leaderboard[name].Discord == author) {
                 // Only authorized users can upload top 20 scores
