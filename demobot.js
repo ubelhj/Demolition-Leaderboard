@@ -1,53 +1,21 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
 // const config = require("./config.json"); // For local Testing only
-const leaderboard = require("./leaderboard.json");
+let leaderboard;
+let idmap;
 const highscores = require("./highscores.json");
-const idmap = require("./idmap");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
 const http = require('http');
 let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch});
+let failedDownload = false;
 
 
 
 client.on("ready", () => {
-    // Downloads and saves dropbox files of leaderboards
-    // Allows cross-session saving of data and cloud access from other apps
-    // Stores data as json mapped to username
-    dbx.filesDownload({path: "/leaderboard.json"})
-        .then(function (data) {
-            fs.writeFile("./leaderboard.json", data.fileBinary, 'binary', function (err) {
-                if (err) { throw err; }
-                console.log('File: ' + data.name + ' saved.');
-            });
-        })
-        .catch(function (err) {
-            throw err;
-        });
-    // Stores data as easy to manipulate CSV
-    dbx.filesDownload({path: "/leaderboard.csv"})
-        .then(function (data) {
-            fs.writeFile("./leaderboard.csv", data.fileBinary, 'binary', function (err) {
-                if (err) { throw err; }
-                console.log('File: ' + data.name + ' saved.');
-            });
-        })
-        .catch(function (err) {
-            throw err;
-        });
-    // Maps Discord IDs to names to prevent duplicates
-    dbx.filesDownload({path: "/idmap.json"})
-        .then(function (data) {
-            fs.writeFile("./idmap.json", data.fileBinary, 'binary', function (err) {
-                if (err) { throw err; }
-                console.log('File: ' + data.name + ' saved.');
-            });
-        })
-        .catch(function (err) {
-            throw err;
-        });
+    // downloads updated files from dropbox
+    download();
 
     // No longer necessary for worker dyno
 
@@ -70,6 +38,10 @@ client.on("message", message => {
     if(message.content.indexOf(process.env.prefix) !== 0) return;
     // Defines args
     const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g);
+    if (failedDownload) {
+        download();
+    }
+    if (failedDownload) { return; }
     // Saves author id to verify identity
     let author = message.author.id;
     // Allows creator to authorize top 20 users to post their scores
@@ -247,36 +219,99 @@ client.on("message", message => {
     }
 });
 
+function download() {
+    failedDownload = false;
+
+    // Downloads and saves dropbox files of leaderboards
+    // Allows cross-session saving of data and cloud access from other apps
+    // Stores data as json mapped to username
+    dbx.filesDownload({path: "/leaderboard.json"})
+        .then(function (data) {
+            fs.writeFile("./leaderboard.json", data.fileBinary, 'binary', function (err) {
+                if (err) {
+                    failedDownload = true;
+                    throw err;
+                }
+                leaderboard = require("./leaderboard.json");
+                console.log('File: ' + data.name + ' saved.');
+            });
+        })
+        .catch(function (err) {
+            failedDownload = true;
+            throw err;
+        });
+    // Stores data as easy to manipulate CSV
+    dbx.filesDownload({path: "/leaderboard.csv"})
+        .then(function (data) {
+            fs.writeFile("./leaderboard.csv", data.fileBinary, 'binary', function (err) {
+                if (err) {
+                    failedDownload = true;
+                    throw err;
+                }
+                console.log('File: ' + data.name + ' saved.');
+            });
+        })
+        .catch(function (err) {
+            failedDownload = true;
+            throw err;
+        });
+    // Maps Discord IDs to names to prevent duplicates
+    dbx.filesDownload({path: "/idmap.json"})
+        .then(function (data) {
+            fs.writeFile("./idmap.json", data.fileBinary, 'binary', function (err) {
+                if (err) {
+                    failedDownload = true;
+                    throw err;
+                }
+                console.log('File: ' + data.name + ' saved.');
+                idmap = require("./idmap");
+            });
+        })
+        .catch(function (err) {
+            failedDownload = true;
+            throw err;
+        });
+}
+
+
 // Uploads updated files to Dropbox
 function upload(message) {
-    fs.readFile("leaderboard.csv", function (err, data) {
-        if (err) {
-            throw err;
-        }
-        // console.log(data.toString());
-        dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
+    if (failedDownload) {
+        download()
+    }
+
+    if (failedDownload) {
+        message.channel.send("Failed to sync with dropbox. Try again later \n@JerryTheBee");
+    } else {
+        fs.readFile("leaderboard.csv", function (err, data) {
+            if (err) {
+                throw err;
+            }
+            // console.log(data.toString());
+            dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
+                .catch(function (error) {
+                    console.error(error);
+                });
+        });
+
+        console.log("Uploaded CSV");
+
+        dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
             .catch(function (error) {
                 console.error(error);
             });
-    });
 
-    console.log("Uploaded CSV");
+        console.log("Uploaded leaderboard JSON");
 
-    dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
-        .catch(function (error) {
-            console.error(error);
-        });
+        dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
+            .catch(function (error) {
+                console.error(error);
+            });
 
-    console.log("Uploaded leaderboard JSON");
+        console.log("Uploaded idmap JSON");
 
-    dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
-        .catch(function (error) {
-            console.error(error);
-        });
-
-    console.log("Uploaded idmap JSON");
-
-    message.channel.send("Updated Leaderboard!");
+        message.channel.send("Updated Leaderboard!");
+    }
 }
 
 // Logs into Discord
