@@ -41,7 +41,10 @@ client.on("message", message => {
     if (failedDownload) {
         download();
     }
-    if (failedDownload) { return; }
+    if (failedDownload) {
+        message.channel.send("Failed to connect to dropbox. Try again in a couple minutes");
+        return;
+    }
     // Saves author id to verify identity
     let author = message.author.id;
     // Allows creator to authorize top 20 users to post their scores
@@ -271,6 +274,10 @@ function download() {
             failedDownload = true;
             throw err;
         });
+
+    if (failedDownload) {
+        console.log("failed download");
+    }
 }
 
 
@@ -290,6 +297,7 @@ function upload(message) {
             // console.log(data.toString());
             dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
                 .catch(function (error) {
+                    message.channel.send("Failed to upload CSV leaderboard. Try again later");
                     console.error(error);
                 });
         });
@@ -298,6 +306,7 @@ function upload(message) {
 
         dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
             .catch(function (error) {
+                message.channel.send("Failed to upload JSON leaderboard. Try again later");
                 console.error(error);
             });
 
@@ -305,6 +314,7 @@ function upload(message) {
 
         dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
             .catch(function (error) {
+                message.channel.send("Failed to upload ID mapping. Try again later");
                 console.error(error);
             });
 
