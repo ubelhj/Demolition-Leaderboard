@@ -95,6 +95,7 @@ client.on("message", message => {
 
         // Keeps track to ensure the leaderboard has to be updated in dropbox
         let changed = false;
+        let updatedLeaderboard = false;
 
         if (name != null) {
             // If the leaderboard doesn't include the name, adds it
@@ -132,6 +133,7 @@ client.on("message", message => {
             }
             leaderboard[name].Demos = args[0];
             leaderboard[name].Exterminations = args[2];
+            updatedLeaderboard = true;
             changed = true;
 
         // Ensures only the Discord ID associated with a score can change their data
@@ -163,6 +165,7 @@ client.on("message", message => {
                     } else {
                         leaderboard[name].Demos = args[0];
                         leaderboard[name].Exterminations = args[2];
+                        updatedLeaderboard = true;
                         changed = true;
                     }
                 // Checks against the top score
@@ -178,12 +181,14 @@ client.on("message", message => {
                     } else {
                         leaderboard[name].Demos = args[0];
                         leaderboard[name].Exterminations = args[2];
+                        updatedLeaderboard = true;
                         changed = true;
                     }
                 // Toothboto gets to upload top score
                 } else {
                     leaderboard[name].Demos = args[0];
                     leaderboard[name].Exterminations = args[2];
+                    updatedLeaderboard = true;
                     changed = true;
                 }
             // Messages if the account is registered to another player
@@ -207,13 +212,18 @@ client.on("message", message => {
         //     console.log('Wrote Map');
         // });
 
-        let content = "\n" + name + "," + args[0] + "," + args[2];
+        if (updatedLeaderboard) {
+            let content = "\n" + name + "," + args[0] + "," + args[2];
 
-        // Adds to running CSV, which works better with R Shiny site
-        fs.appendFile("leaderboard.csv", content, (err) => {
-            if (err) throw err;
-            console.log('Appended CSV');
-        });
+            // Adds to running CSV, which works better with R Shiny site
+            fs.appendFile("leaderboard.csv", content, (err) => {
+                if (err) {
+                    message.channel.send("Failed to write to leaderboard CSV. Try again later");
+                    throw err;
+                }
+                console.log('Appended CSV');
+            });
+        }
 
         // If changed, uploads changes
         if (changed) {
@@ -292,6 +302,7 @@ function upload(message) {
     } else {
         fs.readFile("leaderboard.csv", function (err, data) {
             if (err) {
+                message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
                 throw err;
             }
             // console.log(data.toString());
