@@ -212,25 +212,30 @@ client.on("message", message => {
         //     console.log('Wrote Map');
         // });
 
+        let content;
+
+        if (updatedLeaderboard) {
+            content = "\n" + name + "," + args[0] + "," + args[2];
+            // Adds to running CSV, which works better with R Shiny site
+        }
+
         // If changed, uploads changes
         if (changed) {
-            if (updatedLeaderboard) {
-                let content = "\n" + name + "," + args[0] + "," + args[2];
-
-                // Adds to running CSV, which works better with R Shiny site
-                fs.appendFile("leaderboard.csv", content, (err) => {
-                    if (err) {
-                        message.channel.send("Failed to write to leaderboard CSV. Try again later");
-                        throw err;
-                    }
-                    console.log('Appended CSV');
-                });
-            }
-
-            upload(message);
+            upload(message, content, updatedLeaderboard);
         }
     }
 });
+
+// writes the CSV file leaderboard
+async function writeCSV(message, content) {
+    fs.appendFile("leaderboard.csv", content, (err) => {
+        if (err) {
+            message.channel.send("Failed to write to leaderboard CSV. Try again later");
+            throw err;
+        }
+        console.log('Appended CSV');
+    });
+}
 
 function download() {
     failedDownload = false;
@@ -292,7 +297,7 @@ function download() {
 
 
 // Uploads updated files to Dropbox
-function upload(message) {
+async function upload(message, content, updatedLeaderboard) {
     if (failedDownload) {
         download()
     }
@@ -300,20 +305,25 @@ function upload(message) {
     if (failedDownload) {
         message.channel.send("Failed to sync with dropbox. Try again later \n@JerryTheBee");
     } else {
-        fs.readFile("leaderboard.csv", function (err, data) {
-            if (err) {
-                message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
-                throw err;
-            }
-            // console.log(data.toString());
-            dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
-                .catch(function (error) {
-                    message.channel.send("Failed to upload CSV leaderboard. Try again later");
-                    console.error(error);
-                });
-        });
 
-        console.log("Uploaded CSV");
+        if (updatedLeaderboard) {
+            await writeCSV(message, content);
+
+            fs.readFile("leaderboard.csv", function (err, data) {
+                if (err) {
+                    message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
+                    throw err;
+                }
+                // console.log(data.toString());
+                dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
+                    .catch(function (error) {
+                        message.channel.send("Failed to upload CSV leaderboard. Try again later");
+                        console.error(error);
+                    });
+            });
+
+            console.log("Uploaded CSV");
+        }
 
         dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
             .catch(function (error) {
