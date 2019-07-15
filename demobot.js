@@ -212,21 +212,21 @@ client.on("message", message => {
         //     console.log('Wrote Map');
         // });
 
-        if (updatedLeaderboard) {
-            let content = "\n" + name + "," + args[0] + "," + args[2];
-
-            // Adds to running CSV, which works better with R Shiny site
-            fs.appendFile("leaderboard.csv", content, (err) => {
-                if (err) {
-                    message.channel.send("Failed to write to leaderboard CSV. Try again later");
-                    throw err;
-                }
-                console.log('Appended CSV');
-            });
-        }
-
         // If changed, uploads changes
         if (changed) {
+            if (updatedLeaderboard) {
+                let content = "\n" + name + "," + args[0] + "," + args[2];
+
+                // Adds to running CSV, which works better with R Shiny site
+                fs.appendFile("leaderboard.csv", content, (err) => {
+                    if (err) {
+                        message.channel.send("Failed to write to leaderboard CSV. Try again later");
+                        throw err;
+                    }
+                    console.log('Appended CSV');
+                });
+            }
+
             upload(message);
         }
     }
