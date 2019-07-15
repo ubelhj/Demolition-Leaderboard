@@ -227,14 +227,18 @@ client.on("message", message => {
 });
 
 // writes the CSV file leaderboard
-async function writeCSV(message, content) {
-    fs.appendFile("leaderboard.csv", content, (err) => {
-        if (err) {
-            message.channel.send("Failed to write to leaderboard CSV. Try again later");
-            throw err;
-        }
-        console.log('Appended CSV');
-    });
+async function writeCSV(message, content, updatedLeaderboard) {
+    if (updatedLeaderboard) {
+        fs.appendFile("leaderboard.csv", content, (err) => {
+            if (err) {
+                message.channel.send("Failed to write to leaderboard CSV. Try again later");
+                throw err;
+            }
+            console.log('Appended CSV');
+        });
+    }
+
+    return 1;
 }
 
 function download() {
@@ -297,7 +301,7 @@ function download() {
 
 
 // Uploads updated files to Dropbox
-async function upload(message, content, updatedLeaderboard) {
+function upload(message, content, updatedLeaderboard) {
     if (failedDownload) {
         download()
     }
@@ -306,42 +310,49 @@ async function upload(message, content, updatedLeaderboard) {
         message.channel.send("Failed to sync with dropbox. Try again later \n@JerryTheBee");
     } else {
 
-        if (updatedLeaderboard) {
-            await writeCSV(message, content);
+        writeCSV(message, content, updatedLeaderboard)
+            .then(result => {
+                console.log(result);
+                if (updatedLeaderboard) {
+                    fs.readFile("leaderboard.csv", function (err, data) {
+                        if (err) {
+                            message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
+                            throw err;
+                        }
+                        // console.log(data.toString());
+                        dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
+                            .catch(function (error) {
+                                message.channel.send("Failed to upload CSV leaderboard. Try again later");
+                                console.error(error);
+                            });
+                    });
 
-            fs.readFile("leaderboard.csv", function (err, data) {
-                if (err) {
-                    message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
-                    throw err;
+                    console.log("Uploaded CSV");
                 }
-                // console.log(data.toString());
-                dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
+
+                dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
                     .catch(function (error) {
-                        message.channel.send("Failed to upload CSV leaderboard. Try again later");
+                        message.channel.send("Failed to upload JSON leaderboard. Try again later");
                         console.error(error);
                     });
-            });
 
-            console.log("Uploaded CSV");
-        }
+                console.log("Uploaded leaderboard JSON");
 
-        dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
-            .catch(function (error) {
-                message.channel.send("Failed to upload JSON leaderboard. Try again later");
-                console.error(error);
-            });
+                dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
+                    .catch(function (error) {
+                        message.channel.send("Failed to upload ID mapping. Try again later");
+                        console.error(error);
+                    });
 
-        console.log("Uploaded leaderboard JSON");
+                console.log("Uploaded idmap JSON");
 
-        dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
-            .catch(function (error) {
-                message.channel.send("Failed to upload ID mapping. Try again later");
-                console.error(error);
-            });
+                message.channel.send("Updated Leaderboard!");
+            })
+            .catch(err => {
+                console.log(err);
+                message.channel.send("@JerryTheBee Error in Async");
+        });
 
-        console.log("Uploaded idmap JSON");
-
-        message.channel.send("Updated Leaderboard!");
     }
 }
 
