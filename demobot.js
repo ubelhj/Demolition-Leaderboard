@@ -220,7 +220,7 @@ client.on("message", message => {
         let content;
 
         if (updatedLeaderboard) {
-            content = "\n" + name + "," + args[0] + "," + args[2];
+            content = " \r\n\"" + name + "\"," + args[0] + "," + args[2];
             // Adds to running CSV, which works better with R Shiny site
         }
 
