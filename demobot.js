@@ -61,10 +61,15 @@ client.on("message", message => {
             name = args[2];
         }
         console.log(name);
+
+        if (!leaderboard[name]) {
+            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+        }
+
         leaderboard[name].Discord = args[1];
         leaderboard[name].Authorized = 1;
         idmap[args[1]] = name;
-        upload(message);
+        upload(message, null, false);
         console.log("Authorized " + name);
 
     // Ensures proper command syntax
