@@ -1,14 +1,14 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
-// const config = require("./config.json"); // For local Testing only
+const config = require("./config.json"); // For local Testing only
 let leaderboard;
 let idmap;
 const highscores = require("./highscores.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
-const http = require('http');
-let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch});
+// let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch}); // for heroku usage
+let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch}); // for local testing
 let failedDownload = false;
 
 
@@ -16,18 +16,6 @@ let failedDownload = false;
 client.on("ready", () => {
     // downloads updated files from dropbox
     download();
-
-    // No longer necessary for worker dyno
-
-    // // connects to server to please heroku
-    // http.createServer().listen(process.env.PORT, function () {
-    //     console.log('Express server listening on' + process.env.PORT);
-    // });
-    // console.log("I am ready!");
-    // // keeps awake
-    // setInterval(function() {
-    //     http.get("http://demo-leaderboard.herokuapp.com/");
-    // }, 300000);
 });
 
 // when the bot sees a message
@@ -35,9 +23,15 @@ client.on("message", message => {
     // Ignores messages from bots to stop abuse
     if (message.author.bot) return;
     // Ensures the message starts with the prefix "D:"
-    if(message.content.indexOf(process.env.prefix) !== 0) return;
+    // if(message.content.indexOf(process.env.prefix) !== 0) return; // for heroku usage
+
+    if(message.content.indexOf(config.prefix) !== 0) return; // for local testing
+
     // Defines args
-    const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g);
+    // const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g); // for heroku usage
+
+    const args = message.content.slice(config.prefix.length).trim().split(/ +/g); // for local testing
+
     if (failedDownload) {
         download();
     }
@@ -45,6 +39,7 @@ client.on("message", message => {
         message.channel.send("Failed to connect to dropbox. Try again in a couple minutes");
         return;
     }
+
     // Saves author id to verify identity
     let author = message.author.id;
     // Allows creator to authorize top 20 users to post their scores
@@ -68,8 +63,13 @@ client.on("message", message => {
 
         leaderboard[name].Discord = args[1];
         leaderboard[name].Authorized = 1;
-        idmap[args[1]] = name;
-        upload(message, null, false);
+
+        if (!idmap[args[1]]) {
+            idmap[args[1]] = name;
+            uploadIdMap(message);
+        }
+
+        uploadJSON(message);
         console.log("Authorized " + name);
 
     // Ensures proper command syntax
@@ -95,30 +95,32 @@ client.on("message", message => {
             }
         }
 
-        // console.log(leaderboard.hasOwnProperty(name));
         console.log(leaderboard[name]);
 
         // Keeps track to ensure the leaderboard has to be updated in dropbox
-        let changed = false;
+        // changed JSON keeps track of if the JSON has been changed
+        let changedJSON = false;
+        // updatedLeaderboard keeps track of if a new valid score has been uploaded
+        //      if so it also assumes the JSON needs to be uploaded as well
         let updatedLeaderboard = false;
 
         if (name != null) {
             // If the leaderboard doesn't include the name, adds it
             if (!leaderboard[name]) {
                 leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
-                changed = true;
+                changedJSON = true;
             }
 
             // If the leaderboard doesn't have a discord ID attached, adds it
             if (!leaderboard[name].Discord) {
                 leaderboard[name].Discord = author;
-                changed = true;
+                changedJSON = true;
             }
 
             // If the ID map doesn't have a name attached, adds it
             if (!idmap[author]) {
                 idmap[author] = name;
-                changed = true;
+                uploadIdMap();
             }
         } else {
             // if the idmap doesn't include this discord ID and no name was given, returns
@@ -139,7 +141,6 @@ client.on("message", message => {
             leaderboard[name].Demos = args[0];
             leaderboard[name].Exterminations = args[2];
             updatedLeaderboard = true;
-            changed = true;
 
         // Ensures only the Discord ID associated with a score can change their data
         } else {
@@ -171,7 +172,6 @@ client.on("message", message => {
                         leaderboard[name].Demos = args[0];
                         leaderboard[name].Exterminations = args[2];
                         updatedLeaderboard = true;
-                        changed = true;
                     }
                 // Checks against the top score
                 // Only user authorized to update the top score is the record holder toothboto
@@ -187,14 +187,12 @@ client.on("message", message => {
                         leaderboard[name].Demos = args[0];
                         leaderboard[name].Exterminations = args[2];
                         updatedLeaderboard = true;
-                        changed = true;
                     }
                 // Toothboto gets to upload top score
                 } else {
                     leaderboard[name].Demos = args[0];
                     leaderboard[name].Exterminations = args[2];
                     updatedLeaderboard = true;
-                    changed = true;
                 }
             // Messages if the account is registered to another player
             } else {
@@ -222,30 +220,15 @@ client.on("message", message => {
         if (updatedLeaderboard) {
             content = " \n\"" + name + "\"," + args[0] + "," + args[2];
             // Adds to running CSV, which works better with R Shiny site
-        }
-
-        // If changed, uploads changes
-        if (changed) {
-            upload(message, content, updatedLeaderboard);
+            uploadCSV(message, content);
+            uploadJSON(message);
+        } else if (changedJSON) {
+            uploadJSON(message);
         }
     }
 });
 
-// writes the CSV file leaderboard
-async function writeCSV(message, content, updatedLeaderboard) {
-    if (updatedLeaderboard) {
-        fs.appendFile("leaderboard.csv", content, (err) => {
-            if (err) {
-                message.channel.send("Failed to write to leaderboard CSV. Try again later");
-                throw err;
-            }
-            console.log('Appended CSV');
-        });
-    }
-
-    return 1;
-}
-
+// downloads files from Dropbox to ensure continuity over multiple sessions
 function download() {
     failedDownload = false;
 
@@ -304,62 +287,62 @@ function download() {
     }
 }
 
-
-// Uploads updated files to Dropbox
-function upload(message, content, updatedLeaderboard) {
-    if (failedDownload) {
-        download()
-    }
-
-    if (failedDownload) {
-        message.channel.send("Failed to sync with dropbox. Try again later \n@JerryTheBee");
-    } else {
-
-        writeCSV(message, content, updatedLeaderboard)
-            .then(result => {
-                console.log(result);
-                if (updatedLeaderboard) {
-                    fs.readFile("leaderboard.csv", function (err, data) {
-                        if (err) {
-                            message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
-                            throw err;
-                        }
-                        // console.log(data.toString());
-                        dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
-                            .catch(function (error) {
-                                message.channel.send("Failed to upload CSV leaderboard. Try again later");
-                                console.error(error);
-                            });
-                    });
-
-                    console.log("Uploaded CSV");
+// Writes and uploads CSV leaderboard file to Dropbox
+function uploadCSV(message, content) {
+    writeCSV(message, content)
+        .then(result => {
+            console.log(result);
+            fs.readFile("leaderboard.csv", function (err, data) {
+                if (err) {
+                    message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
+                    throw err;
                 }
-
-                dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+                // console.log(data.toString());
+                dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
                     .catch(function (error) {
-                        message.channel.send("Failed to upload JSON leaderboard. Try again later");
+                        message.channel.send("Failed to upload CSV leaderboard. Try again later");
                         console.error(error);
-                    });
+                    })
+            });
+        });
+}
 
-                console.log("Uploaded leaderboard JSON");
+// writes the CSV file leaderboard
+async function writeCSV(message, content) {
+    fs.appendFile("leaderboard.csv", content, (err) => {
+        if (err) {
+            message.channel.send("Failed to write to leaderboard CSV. Try again later");
+            throw err;
+        }
+        console.log('Appended CSV');
+    });
 
-                dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
-                    .catch(function (error) {
-                        message.channel.send("Failed to upload ID mapping. Try again later");
-                        console.error(error);
-                    });
+    return 1;
+}
 
-                console.log("Uploaded idmap JSON");
-
-                message.channel.send("Updated Leaderboard!");
-            })
-            .catch(err => {
-                console.log(err);
-                message.channel.send("@JerryTheBee Error in Async");
+// uploads the ID mapping JSON file to Dropbox
+function uploadIdMap(message) {
+    dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
+        .catch(function (error) {
+            message.channel.send("Failed to upload ID mapping. Try again later");
+            console.error(error);
         });
 
-    }
+    console.log("Uploaded idmap JSON");
+}
+
+// uploads the JSON file leaderboard to Dropbox
+function uploadJSON(message) {
+    dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+        .catch(function (error) {
+            message.channel.send("Failed to upload JSON leaderboard. Try again later");
+            console.error(error);
+        });
+
+    console.log("Uploaded leaderboard JSON");
 }
 
 // Logs into Discord
-client.login(process.env.token);
+// client.login(process.env.token); // for heroku use
+
+client.login(config.discordToken);  // for local testing
