@@ -12,63 +12,71 @@ let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch}); // for loc
 let failedDownload = false;
 
 
-
+// On startup downloads files from Dropbox to keep continuity across sessions
 client.on("ready", () => {
-    // downloads updated files from dropbox
     download();
 });
 
-// when the bot sees a message
+// when the bot sees a message, begins running leaderboard update
 client.on("message", message => {
     // Ignores messages from bots to stop abuse
     if (message.author.bot) return;
+
     // Ensures the message starts with the prefix "D:"
     // if(message.content.indexOf(process.env.prefix) !== 0) return; // for heroku usage
-
     if(message.content.indexOf(config.prefix) !== 0) return; // for local testing
 
     // Defines args
     // const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g); // for heroku usage
-
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g); // for local testing
 
+    // if the previous download failed, tries again
     if (failedDownload) {
         download();
     }
+
+    // if two in a row have failed, gives up and warns user
+    // Prevents overwriting of data with old data
     if (failedDownload) {
         message.channel.send("Failed to connect to dropbox. Try again in a couple minutes");
         return;
     }
 
-    // Saves author id to verify identity
+    // Uses author Discord id to verify identity
+    // Discord gives every user an 18 digit identifier that cannot be duplicated
     let author = message.author.id;
+
     // Allows creator to authorize top 20 users to post their scores
+    // Unauthorized users cannot upload scores
     // Syntax :
     //  D: Authorize DiscordID Name
     if (author == leaderboard.Car.Discord && args[0] == "Authorize") {
-        let name = "";
+
+        // defines the user's name
+        let name = args[2];
         if (args.length > 3) {
-            name = args[2];
             for (let i = 3; i < args.length; i++) {
                 name = name + " " + args[i];
             }
-        } else {
-            name = args[2];
         }
         console.log(name);
 
+        // If the user isn't in the leaderboard, adds them
         if (!leaderboard[name]) {
             leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
         }
 
+        // Links ID to score and authorizes
         leaderboard[name].Discord = args[1];
         leaderboard[name].Authorized = 1;
 
+        // If the ID to name map doesn't include the current ID, adds them to the map
         if (!idmap[args[1]]) {
             idmap[args[1]] = name;
             uploadIdMap(message);
         }
 
+        // Uploads the updated JSON Leaderboard
         uploadJSON(message);
         console.log("Authorized " + name);
 
@@ -85,7 +93,7 @@ client.on("message", message => {
 
     // Updates leaderboard if the command is correct
     } else {
-
+        // Defines user's name
         let name = args[3];
         // Sets name variable for long names with multiple spaces
         // One word names are left alone
@@ -98,6 +106,7 @@ client.on("message", message => {
         console.log(leaderboard[name]);
 
         // Keeps track to ensure the leaderboard has to be updated in dropbox
+
         // changed JSON keeps track of if the JSON has been changed
         let changedJSON = false;
         // updatedLeaderboard keeps track of if a new valid score has been uploaded
@@ -123,7 +132,7 @@ client.on("message", message => {
                 uploadIdMap();
             }
         } else {
-            // if the idmap doesn't include this discord ID and no name was given, returns
+            // if the idmap doesn't include this discord ID and no name was given, returns and warns user
             if (!idmap[author]) {
                 message.channel.send("Account isn't mapped to a name, try again including a name");
                 return;
@@ -133,6 +142,7 @@ client.on("message", message => {
         // Backdoor for creator to upload any data
         // Useful for Reddit users and manual changes
         if (author == leaderboard.Car.Discord) {
+            // for null name, updates creator's score
             if (name == null) {
                 if (idmap[author]) {
                     name = idmap[author];
@@ -142,17 +152,22 @@ client.on("message", message => {
             leaderboard[name].Exterminations = args[2];
             updatedLeaderboard = true;
 
-        // Ensures only the Discord ID associated with a score can change their data
+        // Updates leaderboard
         } else {
+            // If there is a name mapped to the user's ID, updates that user's stats
+            // Otherwise warns user to use a name
+            // Should not be reached but ensures quality of data
             if (idmap[author]) {
                 name = idmap[author];
             } else {
                 message.channel.send("Account isn't mapped to a name, try again including a name");
                 return;
             }
+
+            // Ensures user can only change their score
             if (leaderboard[name].Discord == author) {
                 // Only authorized users can upload top 20 scores
-                // Needs creator permission to do so
+                // Needs permission to do so
                 if (leaderboard[name].Authorized == 0) {
                     if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
                         message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
@@ -175,6 +190,7 @@ client.on("message", message => {
                     }
                 // Checks against the top score
                 // Only user authorized to update the top score is the record holder toothboto
+                // Prevents abuse by authorized top 20 users
                 } else if (author != leaderboard.toothboto.Discord) {
                     if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
                         message.channel.send("Congrats on the top place for Demos! " +
@@ -188,13 +204,13 @@ client.on("message", message => {
                         leaderboard[name].Exterminations = args[2];
                         updatedLeaderboard = true;
                     }
-                // Toothboto gets to upload top score
+                // Toothboto is allowed to upload top score
                 } else {
                     leaderboard[name].Demos = args[0];
                     leaderboard[name].Exterminations = args[2];
                     updatedLeaderboard = true;
                 }
-            // Messages if the account is registered to another player
+            // Warns user if the account is registered to another player
             } else {
                 message.channel.send("Cannot update leaderboard for other users, " +
                     "Please DM JerryTheBee if something is wrong");
@@ -215,13 +231,13 @@ client.on("message", message => {
         //     console.log('Wrote Map');
         // });
 
-        let content;
-
+        // If the leaderboard scores have been updated, uploads it
         if (updatedLeaderboard) {
-            content = " \n\"" + name + "\"," + args[0] + "," + args[2];
             // Adds to running CSV, which works better with R Shiny site
-            uploadCSV(message, content);
+            // Has format: name, demolitions, exterminations
+            uploadCSV(message, " \n\"" + name + "\"," + args[0] + "," + args[2]);
             uploadJSON(message);
+        // if only the JSON Leaderboard has been updated, just uploads that file
         } else if (changedJSON) {
             uploadJSON(message);
         }
@@ -305,11 +321,13 @@ function uploadCSV(message, content) {
                     })
             });
         });
+
     console.log("Uploaded CSV");
     message.channel.send("Uploaded Leaderboard");
 }
 
 // writes the CSV file leaderboard
+// is async to ensure file is written before uploading
 async function writeCSV(message, content) {
     fs.appendFile("leaderboard.csv", content, (err) => {
         if (err) {
