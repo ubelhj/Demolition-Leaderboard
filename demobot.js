@@ -305,6 +305,8 @@ function uploadCSV(message, content) {
                     })
             });
         });
+    console.log("Uploaded CSV");
+    message.channel.send("Uploaded Leaderboard");
 }
 
 // writes the CSV file leaderboard
@@ -328,6 +330,7 @@ function uploadIdMap(message) {
             console.error(error);
         });
 
+    message.channel.send("Updated ID Map");
     console.log("Uploaded idmap JSON");
 }
 
