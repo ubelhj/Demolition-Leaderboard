@@ -129,7 +129,7 @@ client.on("message", message => {
             // If the ID map doesn't have a name attached, adds it
             if (!idmap[author]) {
                 idmap[author] = name;
-                uploadIdMap();
+                uploadIdMap(message);
             }
         } else {
             // if the idmap doesn't include this discord ID and no name was given, returns and warns user
