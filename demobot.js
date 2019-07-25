@@ -78,6 +78,7 @@ client.on("message", message => {
 
         // Uploads the updated JSON Leaderboard
         uploadJSON(message);
+        message.channel.send("Authorized " + name);
         console.log("Authorized " + name);
 
     // Ensures proper command syntax
