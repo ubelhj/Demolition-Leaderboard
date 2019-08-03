@@ -84,13 +84,15 @@ client.on("message", message => {
     // Ensures proper command syntax
     // Prevents short or long commands from messing up data
     } else if (args.length < 3 || args.length > 8) {
-        message.channel.send("Try updating your stats with the following format: D: # of demos " +
-            "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
+        message.channel.send("Try updating your stats with the following format (spaces between each word): " +
+            "D: # of demos E: # of exterminations Your Username\n Ex: D: 2000 E: 1000 Demo Leaderboard\n" +
+            "Names over 5 words long are not accepted");
 
     // Ensures the Demolition and Exterminator counts are numbers
-    } else if (isNaN(parseInt(args[0])) || isNaN(parseInt(args[2]))) {
-        message.channel.send("Try updating your stats with the following format: D: # of demos " +
-            "E: # of exterminations Your Username\n Ex: D: 200 E: 10 Demo Leaderboard");
+    } else if (isNaN(args[0]) || isNaN(args[2])) {
+        message.channel.send("Try updating your stats with the following format : " +
+            "D: # of demos E: # of exterminations Your Username\n Ex: D: 2000 E: 1000 Demo Leaderboard\n" +
+            "Ensure there are spaces between each word and there are no commas");
 
     // Updates leaderboard if the command is correct
     } else {
@@ -170,18 +172,16 @@ client.on("message", message => {
                 // Only authorized users can upload top 20 scores
                 // Needs permission to do so
                 if (leaderboard[name].Authorized == 0) {
-                    if (parseInt(args[0], 10) > parseInt(highscores.manualDemoLimit, 10)) {
-                        message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
-                            "(A top 20 submission requires manual review from an admin and consequently may take " +
-                            "longer to be accepted). A screenshot may be requested if your submission is suspect or " +
-                            "results in a significant change in position. If you have any questions, " +
-                            "please contact an admin or JerryTheBee");
-                    } else if (parseInt(args[2], 10) > parseInt(highscores.manualExtermLimit, 10)) {
-                        message.channel.send("Congratulations, your stats qualify for a top 20 position! " +
-                            "(A top 20 submission requires manual review from an admin and consequently may take " +
-                            "longer to be accepted). A screenshot may be requested if your submission is suspect or " +
-                            "results in a significant change in position. If you have any questions, " +
-                            "please contact an admin or JerryTheBee");
+                    if (parseInt(args[0], 10) > 15000) {
+                        message.channel.send("Congratulations, you have over 15k Demolitions! " +
+                            "New submissions with high scores require manual review from an admin. " +
+                            "Please send a screenshot of your stats to this channel or an admin. If you have any " +
+                            "questions, please contact an admin or JerryTheBee");
+                    } else if (parseInt(args[2], 10) > 500) {
+                        message.channel.send("Congratulations, you have over 500 Exterminations! " +
+                            "New submissions with high scores require manual review from an admin. " +
+                            "Please send a screenshot of your stats to this channel or an admin. If you have any " +
+                            "questions, please contact an admin or JerryTheBee");
                     // Non top 20 scores from unauthorized users are allowed
                     // Allows new members to add themselves
                     } else {
@@ -199,7 +199,7 @@ client.on("message", message => {
                     } else if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10)) {
                         message.channel.send("Congrats on the top place for Exterminations! " +
                             "Please send verification to an admin before we can verify your spot.");
-                        // Authorized users can update scores lower than the top spot
+                    // Authorized users can update scores lower than the top spot
                     } else {
                         leaderboard[name].Demos = args[0];
                         leaderboard[name].Exterminations = args[2];
