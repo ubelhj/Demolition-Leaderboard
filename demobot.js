@@ -82,16 +82,22 @@ client.on("message", message => {
         console.log("Authorized " + name);
 
     // Ensures proper command syntax
-    // Prevents short or long commands from messing up data
-    } else if (args.length < 3 || args.length > 8) {
+    // Prevents short commands from messing up data
+    } else if (args.length < 3) {
         message.channel.send("Try updating your stats with the following format (spaces between each word): " +
-            "D: # of demos E: # of exterminations Your Username\n Ex: D: 2000 E: 1000 Demo Leaderboard\n" +
+            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
+            "You must include both demos and exterminations");
+
+    // Prevents long commands that probably are people talking about other things
+    } else if (args.length > 8) {
+        message.channel.send("Try updating your stats with the following format (spaces between each word): " +
+            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
             "Names over 5 words long are not accepted");
 
-    // Ensures the Demolition and Exterminator counts are numbers
+    // Ensures the Demolition and Exterminator counts are numbers and no commas are used
     } else if (isNaN(args[0]) || isNaN(args[2])) {
         message.channel.send("Try updating your stats with the following format : " +
-            "D: # of demos E: # of exterminations Your Username\n Ex: D: 2000 E: 1000 Demo Leaderboard\n" +
+            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
             "Ensure there are spaces between each word and there are no commas");
 
     // Updates leaderboard if the command is correct
