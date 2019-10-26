@@ -336,15 +336,13 @@ function uploadCSV(message, content) {
 // writes the CSV file leaderboard
 // is async to ensure file is written before uploading
 async function writeCSV(message, content) {
-    fs.appendFile("leaderboard.csv", content, (err) => {
+    fs.appendFileSync("leaderboard.csv", content, (err) => {
         if (err) {
             message.channel.send("Failed to write to leaderboard CSV. Try again later");
             throw err;
         }
         console.log('Appended CSV');
     });
-
-    return 1;
 }
 
 // uploads the ID mapping JSON file to Dropbox
