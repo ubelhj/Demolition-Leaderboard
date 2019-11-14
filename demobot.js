@@ -323,14 +323,14 @@ function uploadCSV(message, content) {
                 // console.log(data.toString());
                 dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
                     .catch(function (error) {
-                        message.channel.send("Failed to upload CSV leaderboard. Try again later");
+                        message.channel.send("Dropbox error for CSV. Try same command again");
                         console.error(error);
                     })
             });
         });
 
     console.log("Uploaded CSV");
-    message.channel.send("Uploaded Leaderboard");
+    message.channel.send("Uploaded Leaderboard. You can find the live stats here: https://ubelhj.shinyapps.io/demobotR/");
 }
 
 // writes the CSV file leaderboard
@@ -349,7 +349,7 @@ async function writeCSV(message, content) {
 function uploadIdMap(message) {
     dbx.filesUpload({path: '/idmap.json', contents: JSON.stringify(idmap), mode: "overwrite"})
         .catch(function (error) {
-            message.channel.send("Failed to upload ID mapping. Try again later");
+            message.channel.send("Dropbox error for id map. Try same command again");
             console.error(error);
         });
 
@@ -361,7 +361,7 @@ function uploadIdMap(message) {
 function uploadJSON(message) {
     dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
         .catch(function (error) {
-            message.channel.send("Failed to upload JSON leaderboard. Try again later");
+            message.channel.send("Dropbox error for JSON Leaderboard. Try same command again");
             console.error(error);
         });
 
