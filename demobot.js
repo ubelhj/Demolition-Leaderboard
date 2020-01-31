@@ -71,10 +71,38 @@ client.on("message", message => {
         leaderboard[name].Authorized = 1;
 
         // If the ID to name map doesn't include the current ID, adds them to the map
-        //if (!idmap[args[1]]) {
+        if (!idmap[args[1]]) {
             idmap[args[1]] = name;
             uploadIdMap(message);
-        //}
+        }
+
+        // Uploads the updated JSON Leaderboard
+        uploadJSON(message);
+        message.channel.send("Authorized " + name);
+        console.log("Authorized " + name);
+
+    } else if (author == leaderboard.Car.Discord && args[0] == "Name") {
+
+        // defines the user's name
+        let name = args[2];
+        if (args.length > 3) {
+            for (let i = 3; i < args.length; i++) {
+                name = name + " " + args[i];
+            }
+        }
+        console.log(name);
+
+        // If the user isn't in the leaderboard, adds them
+        if (!leaderboard[name]) {
+            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+        }
+
+        // Links ID to score and doesn't authorize
+        leaderboard[name].Discord = args[1];
+
+        // Changes ID mapping of user to give a new name
+        idmap[args[1]] = name;
+        uploadIdMap(message);
 
         // Uploads the updated JSON Leaderboard
         uploadJSON(message);
