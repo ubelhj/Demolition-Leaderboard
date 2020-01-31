@@ -70,11 +70,9 @@ client.on("message", message => {
         leaderboard[name].Discord = args[1];
         leaderboard[name].Authorized = 1;
 
-        // If the ID to name map doesn't include the current ID, adds them to the map
-        if (!idmap[args[1]]) {
-            idmap[args[1]] = name;
-            uploadIdMap(message);
-        }
+        // Changes ID map to allow name changes of authorized users
+        idmap[args[1]] = name;
+        uploadIdMap(message);
 
         // Uploads the updated JSON Leaderboard
         uploadJSON(message);
