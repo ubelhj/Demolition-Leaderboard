@@ -52,7 +52,7 @@ client.on("message", message => {
     // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
     // Syntax :
     //  D: Authorize DiscordID Name
-    if (args[0] == "Authorize") {
+    if (args[0] === "Authorize") {
         if (mods[author]) {
             authorize(args, message);
             return;
@@ -62,7 +62,7 @@ client.on("message", message => {
         }
     }
     // Allows creator or moderators to set names of users
-    if (args[0] == "Name") {
+    if (args[0] === "Name") {
         if (mods[author]) {
             nameUser(args, message);
             return;
@@ -72,7 +72,7 @@ client.on("message", message => {
         }
     }
 
-    if (args[0] == "Top") {
+    if (args[0] === "Top") {
         if (mods[author]) {
             topScore(args, message);
             return;
@@ -104,7 +104,7 @@ client.on("message", message => {
             "Ensure there are spaces between each word and there are no commas");
         return;
     }
-    // Updates leaderboard if the command is correct
+
     // Defines user's name
     let name = args[3];
     // Sets name variable for long names with multiple spaces
@@ -115,23 +115,13 @@ client.on("message", message => {
         }
     }
 
-    // if the name is mapped, sets it here
-    if (idmap[author]) {
-        name = idmap[author];
-    }
-
     console.log(leaderboard[name]);
-
-    // Keeps track to ensure the leaderboard has to be updated in dropbox
-
-    // changed JSON keeps track of if the JSON has been changed
-    let changedJSON = false;
-    // updatedLeaderboard keeps track of if a new valid score has been uploaded
-    //      if so it also assumes the JSON needs to be uploaded as well
-    let updatedLeaderboard = false;
 
     // if there's a name, sets it, else tells user to include name
     if (name != null) {
+        // changed JSON keeps track of if the JSON has been changed
+        let changedJSON = false;
+
         // If the leaderboard doesn't include the name, adds it
         if (!leaderboard[name]) {
             leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
@@ -149,6 +139,10 @@ client.on("message", message => {
             idmap[author] = name;
             uploadIdMap(message);
         }
+
+        if (changedJSON) {
+            uploadJSON(message);
+        }
     } else {
         // if the idmap doesn't include this discord ID and no name was given, returns and warns user
         if (!idmap[author]) {
@@ -157,9 +151,9 @@ client.on("message", message => {
         }
     }
 
-    // Backdoor for creator to upload any data
+    // Backdoor for moderator to upload any data
     // Useful for Reddit users and manual changes
-    if (author == leaderboard.Car.Discord) {
+    if (mods[author]) {
         // for null name, updates creator's score
         if (name == null) {
             if (idmap[author]) {
@@ -168,96 +162,42 @@ client.on("message", message => {
         }
         leaderboard[name].Demos = args[0];
         leaderboard[name].Exterminations = args[2];
-        updatedLeaderboard = true;
-
-    // Updates leaderboard
-    } else {
-        // If there is a name mapped to the user's ID, updates that user's stats
-        // Otherwise warns user to use a name
-        // Should not be reached but ensures quality of data
-        if (idmap[author]) {
-            name = idmap[author];
-        } else {
-            message.channel.send("Account isn't mapped to a name, try again including a name");
-            return;
-        }
-
-        // Ensures user can only change their score
-        if (leaderboard[name].Discord == author) {
-            // Only authorized users can upload top 20 scores
-            // Needs permission to do so
-            if (leaderboard[name].Authorized == 0) {
-                if (parseInt(args[0], 10) > 15000) {
-                    message.channel.send("Congratulations, you have over 15k Demolitions! " +
-                        "New submissions with high scores require manual review from an admin. " +
-                        "Please send a screenshot of your stats to this channel or an admin. If you have any " +
-                        "questions, please contact an admin or JerryTheBee");
-                } else if (parseInt(args[2], 10) > 500) {
-                    message.channel.send("Congratulations, you have over 500 Exterminations! " +
-                        "New submissions with high scores require manual review from an admin. " +
-                        "Please send a screenshot of your stats to this channel or an admin. If you have any " +
-                        "questions, please contact an admin or JerryTheBee");
-                // Non top 20 scores from unauthorized users are allowed
-                // Allows new members to add themselves
-                } else {
-                    leaderboard[name].Demos = args[0];
-                    leaderboard[name].Exterminations = args[2];
-                    updatedLeaderboard = true;
-                }
-            // Checks against the top score
-            // Only user authorized to update the top score is the record holder toothboto
-            // Prevents abuse by authorized top 20 users
-            } else if (author != leaderboard.toothboto.Discord) {
-                if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
-                    message.channel.send("Congrats on the top place for Demos! " +
-                        "Please send verification to an admin before we can verify your spot.");
-                } else if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10)) {
-                    message.channel.send("Congrats on the top place for Exterminations! " +
-                        "Please send verification to an admin before we can verify your spot.");
-                // Authorized users can update scores lower than the top spot
-                } else {
-                    leaderboard[name].Demos = args[0];
-                    leaderboard[name].Exterminations = args[2];
-                    updatedLeaderboard = true;
-                }
-            // Toothboto is allowed to upload top score
-            } else {
-                leaderboard[name].Demos = args[0];
-                leaderboard[name].Exterminations = args[2];
-                updatedLeaderboard = true;
-            }
-        // Warns user if the account is registered to another player
-        } else {
-            message.channel.send("Cannot update leaderboard for other users, " +
-                "Please DM JerryTheBee if something is wrong");
-        }
+        uploadFiles(" \n\"" + name + "\"," + args[0] + "," + args[2], message);
+        return;
     }
 
-    // First two saves only for local testing
+    // If there is a name mapped to the user's ID, updates that user's stats
+    // Otherwise warns user to use a name
+    // Should not be reached but ensures quality of data
+    if (idmap[author]) {
+        name = idmap[author];
+    } else {
+        message.channel.send("Account isn't mapped to a name, try again including a name");
+        return;
+    }
 
-    // Saves the leaderboard in a JSON, accessible by player name
-    // fs.writeFile("leaderboard.json", JSON.stringify(leaderboard), (err) => {
-    //     if (err) throw err;
-    //     console.log('Wrote Json');
-    // });
+    // Ensures user can only change their score
+    // Warns user if the account is registered to another player
+    // should be unreachable but this is to make sure
+    if (leaderboard[name].Discord !== author) {
+        message.channel.send("Cannot update leaderboard for other users, " +
+            "Please DM JerryTheBee if something is wrong");
+        return;
+    }
 
-    // Saves the map of Discord IDs to player names
-    // fs.writeFile("idmap.json", JSON.stringify(idmap), (err) => {
-    //     if (err) throw err;
-    //     console.log('Wrote Map');
-    // });
+    addScores(leaderboard[name].Authorized, args, message);
+});
 
+function uploadFiles(updatedLeaderboard, message) {
     // If the leaderboard scores have been updated, uploads it
     if (updatedLeaderboard) {
         // Adds to running CSV, which works better with R Shiny site
         // Has format: name, demolitions, exterminations
-        uploadCSV(message, " \n\"" + name + "\"," + args[0] + "," + args[2]);
-        uploadJSON(message);
-    // if only the JSON Leaderboard has been updated, just uploads that file
-    } else if (changedJSON) {
-        uploadJSON(message);
+        uploadCSV(message, updatedLeaderboard);
     }
-});
+    // the JSON Leaderboard has been updated, uploads that file
+    uploadJSON(message);
+}
 
 // downloads files from Dropbox to ensure continuity over multiple sessions
 function download() {
@@ -404,6 +344,54 @@ function topScore(args, message) {
     uploadJSON(message);
     message.channel.send(name + " can now post top scores");
     console.log("Top score authorized " + name);
+}
+
+function addScores(authorized, args, message) {
+    // Only authorized users can upload scores with >15000 demos and/or >500 exterms
+    // Needs permission to do so
+    if (authorized === 0) {
+        if (parseInt(args[0], 10) > 15000) {
+            message.channel.send("Congratulations, you have over 15k Demolitions! " +
+                "New submissions with high scores require manual review from an admin. " +
+                "Please send a screenshot of your stats to this channel or an admin. If you have any " +
+                "questions, please contact an admin or JerryTheBee");
+            return;
+        }
+
+        if (parseInt(args[2], 10) > 500) {
+            message.channel.send("Congratulations, you have over 500 Exterminations! " +
+                "New submissions with high scores require manual review from an admin. " +
+                "Please send a screenshot of your stats to this channel or an admin. If you have any " +
+                "questions, please contact an admin or JerryTheBee");
+            return;
+        }
+    }
+
+    if (authorized === 1) {
+        // Checks against the top score
+        // Only users authorized to update the top score are allowed to
+        // Prevents abuse by authorized users
+        if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
+            message.channel.send("Congrats on the top place for Demos! " +
+                "Please send verification to an admin before we can verify your spot.");
+            return;
+        }
+        if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10)) {
+            message.channel.send("Congrats on the top place for Exterminations! " +
+                "Please send verification to an admin before we can verify your spot.");
+            // Authorized users can update scores lower than the top spot
+            return;
+        }
+    }
+
+    if (authorized === 2) {
+        highscores.leaderDemos = args[0];
+        highscores.leaderExterm = args[2];
+    }
+
+    leaderboard[name].Demos = args[0];
+    leaderboard[name].Exterminations = args[2];
+    uploadFiles(" \n\"" + name + "\"," + args[0] + "," + args[2], message);
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
