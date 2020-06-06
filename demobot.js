@@ -51,65 +51,16 @@ client.on("message", message => {
     // Syntax :
     //  D: Authorize DiscordID Name
     if (author == leaderboard.Car.Discord && args[0] == "Authorize") {
+        authorize(args, message);
+    }
 
-        // defines the user's name
-        let name = args[2];
-        if (args.length > 3) {
-            for (let i = 3; i < args.length; i++) {
-                name = name + " " + args[i];
-            }
-        }
-        console.log(name);
-
-        // If the user isn't in the leaderboard, adds them
-        if (!leaderboard[name]) {
-            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
-        }
-
-        // Links ID to score and authorizes
-        leaderboard[name].Discord = args[1];
-        leaderboard[name].Authorized = 1;
-
-        // Changes ID map to allow name changes of authorized users
-        idmap[args[1]] = name;
-        uploadIdMap(message);
-
-        // Uploads the updated JSON Leaderboard
-        uploadJSON(message);
-        message.channel.send("Authorized " + name);
-        console.log("Authorized " + name);
-
-    } else if (author == leaderboard.Car.Discord && args[0] == "Name") {
-
-        // defines the user's name
-        let name = args[2];
-        if (args.length > 3) {
-            for (let i = 3; i < args.length; i++) {
-                name = name + " " + args[i];
-            }
-        }
-        console.log(name);
-
-        // If the user isn't in the leaderboard, adds them
-        if (!leaderboard[name]) {
-            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
-        }
-
-        // Links ID to score and doesn't authorize
-        leaderboard[name].Discord = args[1];
-
-        // Changes ID mapping of user to give a new name
-        idmap[args[1]] = name;
-        uploadIdMap(message);
-
-        // Uploads the updated JSON Leaderboard
-        uploadJSON(message);
-        message.channel.send("Authorized " + name);
-        console.log("Authorized " + name);
+    if (author == leaderboard.Car.Discord && args[0] == "Name") {
+        name(args, message);
+    }
 
     // Ensures proper command syntax
     // Prevents short commands from messing up data
-    } else if (args.length < 3) {
+    if (args.length < 3) {
         message.channel.send("Try updating your stats with the following format: " +
             "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
             "You must include both demos and exterminations");
@@ -334,6 +285,63 @@ function download() {
     if (failedDownload) {
         console.log("failed download");
     }
+}
+
+function authorize(args, message) {
+    // defines the user's name
+    let name = args[2];
+    if (args.length > 3) {
+        for (let i = 3; i < args.length; i++) {
+            name = name + " " + args[i];
+        }
+    }
+    console.log(name);
+
+    // If the user isn't in the leaderboard, adds them
+    if (!leaderboard[name]) {
+        leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+    }
+
+    // Links ID to score and authorizes
+    leaderboard[name].Discord = args[1];
+    leaderboard[name].Authorized = 1;
+
+    // Changes ID map to allow name changes of authorized users
+    idmap[args[1]] = name;
+    uploadIdMap(message);
+
+    // Uploads the updated JSON Leaderboard
+    uploadJSON(message);
+    message.channel.send("Authorized " + name);
+    console.log("Authorized " + name);
+}
+
+function name(args, message) {
+    // defines the user's name
+    let name = args[2];
+    if (args.length > 3) {
+        for (let i = 3; i < args.length; i++) {
+            name = name + " " + args[i];
+        }
+    }
+    console.log(name);
+
+    // If the user isn't in the leaderboard, adds them
+    if (!leaderboard[name]) {
+        leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+    }
+
+    // Links ID to score and doesn't authorize
+    leaderboard[name].Discord = args[1];
+
+    // Changes ID mapping of user to give a new name
+    idmap[args[1]] = name;
+    uploadIdMap(message);
+
+    // Uploads the updated JSON Leaderboard
+    uploadJSON(message);
+    message.channel.send("Renamed " + name);
+    console.log("Renamed " + name);
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
