@@ -1,14 +1,16 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
-// const config = require("./config.json"); // For local Testing only
+const config = require("./config.json"); // For local Testing only
 let leaderboard;
 let idmap;
+// holds discord IDs of authorized moderators
+const mods = require("./moderators.json");
 const highscores = require("./highscores.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
-let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch}); // for heroku usage
-// let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch}); // for local testing
+//let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch}); // for heroku usage
+let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch}); // for local testing
 let failedDownload = false;
 
 
@@ -23,12 +25,12 @@ client.on("message", message => {
     if (message.author.bot) return;
 
     // Ensures the message starts with the prefix "D:"
-    if(message.content.indexOf(process.env.prefix) !== 0) return; // for heroku usage
-    // if(message.content.indexOf(config.prefix) !== 0) return; // for local testing
+    //if(message.content.indexOf(process.env.prefix) !== 0) return; // for heroku usage
+    if (message.content.indexOf(config.prefix) !== 0) return; // for local testing
 
     // Defines args
-    const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g); // for heroku usage
-    // const args = message.content.slice(config.prefix.length).trim().split(/ +/g); // for local testing
+    //const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g); // for heroku usage
+    const args = message.content.slice(config.prefix.length).trim().split(/ +/g); // for local testing
 
     // if the previous download failed, tries again
     if (failedDownload) {
@@ -46,16 +48,28 @@ client.on("message", message => {
     // Discord gives every user an 18 digit identifier that cannot be duplicated
     let author = message.author.id;
 
-    // Allows creator to authorize top 20 users to post their scores
-    // Unauthorized users cannot upload scores
+    // Allows creator or moderators to authorize users to post their scores
+    // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
     // Syntax :
     //  D: Authorize DiscordID Name
-    if (author == leaderboard.Car.Discord && args[0] == "Authorize") {
-        authorize(args, message);
+    if (args[0] == "Authorize") {
+        if (mods[author]) {
+            authorize(args, message);
+            return;
+        } else {
+            message.channel.send("Only moderators can authorize users");
+            return;
+        }
     }
-
-    if (author == leaderboard.Car.Discord && args[0] == "Name") {
-        name(args, message);
+    // Allows creator or moderators to set names of users
+    if (args[0] == "Name") {
+        if (mods[author]) {
+            name(args, message);
+            return;
+        } else {
+            message.channel.send("Only moderators can authorize users");
+            return;
+        }
     }
 
     // Ensures proper command syntax
@@ -89,6 +103,11 @@ client.on("message", message => {
             }
         }
 
+        // if the name is mapped, sets it here
+        if (idmap[author]) {
+            name = idmap[author];
+        }
+
         console.log(leaderboard[name]);
 
         // Keeps track to ensure the leaderboard has to be updated in dropbox
@@ -99,6 +118,7 @@ client.on("message", message => {
         //      if so it also assumes the JSON needs to be uploaded as well
         let updatedLeaderboard = false;
 
+        // if there's a name, sets it, else tells user to include name
         if (name != null) {
             // If the leaderboard doesn't include the name, adds it
             if (!leaderboard[name]) {
@@ -403,6 +423,6 @@ function uploadJSON(message) {
 }
 
 // Logs into Discord
-client.login(process.env.token); // for heroku use
+//client.login(process.env.token); // for heroku use
 
-// client.login(config.discordToken);  // for local testing
+client.login(config.discordToken);  // for local testing
