@@ -134,6 +134,11 @@ client.on("message", message => {
             changedJSON = true;
         }
 
+        if (leaderboard[name].Discord !== author) {
+            message.channel.send("That name is already taken, please try another");
+            return;
+        }
+
         // If the ID map doesn't have a name attached, adds it
         if (!idmap[author]) {
             idmap[author] = name;
@@ -185,7 +190,7 @@ client.on("message", message => {
         return;
     }
 
-    addScores(leaderboard[name].Authorized, args, message);
+    addScores(leaderboard[name].Authorized, args, name, message);
 });
 
 function uploadFiles(updatedLeaderboard, message) {
@@ -346,7 +351,7 @@ function topScore(args, message) {
     console.log("Top score authorized " + name);
 }
 
-function addScores(authorized, args, message) {
+function addScores(authorized, args, name, message) {
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === 0) {
