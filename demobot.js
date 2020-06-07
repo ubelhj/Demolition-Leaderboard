@@ -10,8 +10,7 @@ const highscores = require("./highscores.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
-//let dbx = new Dropbox({accessToken: process.env.dropToken, fetch: fetch}); // for heroku usage
-let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch}); // for local testing
+let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 let failedDownload = false;
 
 
@@ -26,12 +25,10 @@ client.on("message", message => {
     if (message.author.bot) return;
 
     // Ensures the message starts with the prefix "D:"
-    //if(message.content.indexOf(process.env.prefix) !== 0) return; // for heroku usage
-    if (message.content.indexOf(config.prefix) !== 0) return; // for local testing
+    if (message.content.indexOf(config.prefix) !== 0) return;
 
     // Defines args
-    //const args = message.content.slice(process.env.prefix.length).trim().split(/ +/g); // for heroku usage
-    const args = message.content.slice(config.prefix.length).trim().split(/ +/g); // for local testing
+    const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
 
     // if the previous download failed, tries again
     if (failedDownload) {
@@ -459,6 +456,4 @@ function uploadJSON(message) {
 }
 
 // Logs into Discord
-//client.login(process.env.token); // for heroku use
-
-client.login(config.discordToken);  // for local testing
+client.login(config.discordToken);
