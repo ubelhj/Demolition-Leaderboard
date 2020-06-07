@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
-const config = require("./config.json"); // For local Testing only
+//const config = require("./config.json"); // For local Testing only
+const config = process.env; // for heroku usage
 let leaderboard;
 let idmap;
 // holds discord IDs of authorized moderators
