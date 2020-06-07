@@ -167,7 +167,7 @@ client.on("message", message => {
         }
         leaderboard[name].Demos = args[0];
         leaderboard[name].Exterminations = args[2];
-        uploadFiles(" \n\"" + name + "\"," + args[0] + "," + args[2], message);
+        uploadFiles("\n\"" + name + "\"," + args[0] + "," + args[2], message);
         return;
     }
 
@@ -396,7 +396,7 @@ function addScores(authorized, args, name, message) {
 
     leaderboard[name].Demos = args[0];
     leaderboard[name].Exterminations = args[2];
-    uploadFiles(" \n\"" + name + "\"," + args[0] + "," + args[2], message);
+    uploadFiles("\n\"" + name + "\"," + args[0] + "," + args[2], message);
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
