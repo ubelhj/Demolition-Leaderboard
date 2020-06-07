@@ -2,14 +2,19 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 //const config = require("./config.json"); // For local Testing only
 const config = process.env; // for heroku usage
+
+// hold jsons
 let leaderboard;
 let idmap;
+let highscores;
+
 // holds discord IDs of authorized moderators
 const mods = require("./moderators.json");
-const highscores = require("./highscores.json");
+
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
+const Jimp = require("jimp");
 let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 let failedDownload = false;
 
@@ -59,6 +64,7 @@ client.on("message", message => {
             return;
         }
     }
+
     // Allows creator or moderators to set names of users
     if (args[0] === "Name") {
         if (mods[author]) {
@@ -70,6 +76,7 @@ client.on("message", message => {
         }
     }
 
+    // Allows the top scorer to be changed
     if (args[0] === "Top") {
         if (mods[author]) {
             topScore(args, message);
@@ -79,6 +86,13 @@ client.on("message", message => {
             return;
         }
     }
+
+    // Crops images of salt so only the chat is shown
+    if (args[0] === "Crop") {
+        cropImage(args, message);
+        return;
+    }
+
     // Ensures proper command syntax
     // Prevents short commands from messing up data
     if (args.length < 3) {
@@ -256,6 +270,22 @@ function download() {
             throw err;
         });
 
+    dbx.filesDownload({path: "/highscores.json"})
+        .then(function (data) {
+            fs.writeFile("./highscores.json", data.fileBinary, 'binary', function (err) {
+                if (err) {
+                    failedDownload = true;
+                    throw err;
+                }
+                console.log('File: ' + data.name + ' saved.');
+                highscores = require("./highscores.json");
+            });
+        })
+        .catch(function (err) {
+            failedDownload = true;
+            throw err;
+        });
+
     if (failedDownload) {
         console.log("failed download");
     }
@@ -390,11 +420,48 @@ function addScores(authorized, args, name, message) {
     if (authorized === 2) {
         highscores.leaderDemos = args[0];
         highscores.leaderExterm = args[2];
+        uploadHighScores();
     }
 
     leaderboard[name].Demos = args[0];
     leaderboard[name].Exterminations = args[2];
     uploadFiles("\n\"" + name + "\"," + args[0] + "," + args[2], message);
+}
+
+// Crops images of rocket league down to just see chat
+function cropImage(args, message) {
+    let imageUrl = null;
+    
+    if (message.attachments.array()[0]) {
+        imageUrl = message.attachments.array()[0].url;
+    } 
+    
+    if (!imageUrl) {
+        imageUrl = args[1];
+    } 
+    
+    if (!imageUrl) {
+        message.channel.send("Please use this command with an image attachment or URL");
+        return;
+    } 
+    
+    Jimp.read(imageUrl).then(function (image) {
+        image.crop(0, 0, 450, 250);
+        image.getBuffer(Jimp.MIME_PNG, function (err, buff) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            message.channel.send("Salt from <@" + message.author.id + ">");
+            message.channel.send(new Discord.Attachment(buff)).catch(function (err) {
+                console.log(err);
+            });
+            message.delete().catch(console.error);
+        });
+    }).catch(function (err) {
+        message.channel.send("Error in cropping. Please try again");
+        console.log(err);
+    });
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
@@ -455,5 +522,22 @@ function uploadJSON(message) {
     console.log("Uploaded leaderboard JSON");
 }
 
+// uploads the JSON file leaderboard to Dropbox
+function uploadHighScores(message) {
+    dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores), mode: "overwrite"})
+        .catch(function (error) {
+            message.channel.send("Dropbox error for highscores. Try same command again");
+            console.error(error);
+        });
+
+    console.log("Uploaded highscores");
+}
+
+process.on('unhandledRejection', function(err) {
+    console.log(err);
+});
+
 // Logs into Discord
-client.login(config.discordToken);
+client.login(config.discordToken).catch(function (err) {
+    console.log(err);
+});
