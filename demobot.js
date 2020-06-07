@@ -88,7 +88,7 @@ client.on("message", message => {
     }
 
     // Crops images of salt so only the chat is shown
-    if (args[0] === "Crop") {
+    if (args[0].toLowerCase() === "crop") {
         cropImage(args, message);
         return;
     }
@@ -446,7 +446,7 @@ function cropImage(args, message) {
     } 
     
     Jimp.read(imageUrl).then(function (image) {
-        image.crop(0, 0, 450, 250);
+        image.crop(27, 27, 442 - 27, 230 - 27);
         image.getBuffer(Jimp.MIME_PNG, function (err, buff) {
             if (err) {
                 console.log(err);
