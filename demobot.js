@@ -50,8 +50,7 @@ client.on("message", message => {
     // Uses author Discord id to verify identity
     // Discord gives every user an 18 digit identifier that cannot be duplicated
     let author = message.author.id;
-
-    args[0] = args[0].toLowerCase;
+    args[0] = args[0].toLowerCase();
 
     // Allows creator or moderators to authorize users to post their scores
     // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
