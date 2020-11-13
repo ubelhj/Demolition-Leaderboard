@@ -51,11 +51,13 @@ client.on("message", message => {
     // Discord gives every user an 18 digit identifier that cannot be duplicated
     let author = message.author.id;
 
+    args[0] = args[0].toLowerCase;
+
     // Allows creator or moderators to authorize users to post their scores
     // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
     // Syntax :
     //  D: Authorize DiscordID Name
-    if (args[0] === "Authorize") {
+    if (args[0] === "authorize") {
         if (mods[author]) {
             authorize(args, message);
             return;
@@ -66,7 +68,7 @@ client.on("message", message => {
     }
 
     // Allows creator or moderators to set names of users
-    if (args[0] === "Name") {
+    if (args[0] === "name") {
         if (mods[author]) {
             nameUser(args, message);
             return;
@@ -77,7 +79,7 @@ client.on("message", message => {
     }
 
     // Allows the top scorer to be changed
-    if (args[0] === "Top") {
+    if (args[0] === "top") {
         if (mods[author]) {
             topScore(args, message);
             return;
@@ -88,7 +90,7 @@ client.on("message", message => {
     }
 
     // Crops images of salt so only the chat is shown
-    if (args[0].toLowerCase() === "crop") {
+    if (args[0] === "crop") {
         cropImage(args, message);
         return;
     }
