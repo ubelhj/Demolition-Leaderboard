@@ -31,7 +31,6 @@ client.on("message", async message => {
     // Ignores messages from bots to stop abuse
     if (message.author.bot) return;
 
-
     if (message.content.toLowerCase() === 'd: deploy' && message.author.id === client.application?.owner.id) {
 		const update = {
 			name: 'update',
@@ -80,48 +79,9 @@ client.on("message", async message => {
 		};
 
 		const authorizeCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(authorize);
-		//console.log(command);
 	}
 
     /*
-    // Ensures the message starts with the prefix "D:"
-    if (message.content.indexOf(config.prefix) !== 0) return;
-
-    // Defines args
-    const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
-
-    // if the previous download failed, tries again
-    if (failedDownload) {
-        download();
-    
-    }
-
-    
-    // if two in a row have failed, gives up and warns user
-    // Prevents overwriting of data with old data
-    if (failedDownload) {
-        message.channel.send("Failed to connect to dropbox. Try again in a couple minutes");
-        return;
-    }
-
-    // Uses author Discord id to verify identity
-    // Discord gives every user an 18 digit identifier that cannot be duplicated
-    let author = message.author.id;
-    args[0] = args[0].toLowerCase();
-
-    // Allows creator or moderators to authorize users to post their scores
-    // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
-    // Syntax :
-    //  D: Authorize DiscordID Name
-    if (args[0] === "authorize") {
-        if (mods[author]) {
-            authorize(args, message);
-            return;
-        } else {
-            message.channel.send("Only moderators can authorize users");
-            return;
-        }
-    }
 
     // Allows creator or moderators to set names of users
     if (args[0] === "name") {
@@ -144,37 +104,25 @@ client.on("message", async message => {
             return;
         }
     }
-
-    // Backdoor for moderator to upload any data
-    // Useful for Reddit users and manual changes
-    if (mods[author]) {
-        // for null name, updates creator's score
-        if (name == null) {
-            if (idmap[author]) {
-                name = idmap[author];
-            }
-        }
-        leaderboard[name].Demos = args[0];
-        leaderboard[name].Exterminations = args[2];
-        uploadFiles("\n\"" + name + "\"," + args[0] + "," + args[2], message);
-        return;
-    }
-
-    // Ensures user can only change their score
-    // Warns user if the account is registered to another player
-    // should be unreachable but this is to make sure
-    if (leaderboard[name].Discord !== author) {
-        message.channel.send("Cannot update leaderboard for other users, " +
-            "Please DM JerryTheBee if something is wrong");
-        return;
-    }
-
-    addScores(leaderboard[name].Authorized, args, name, message);
     */
 });
 
 client.on('interaction', async interaction => {
 	if (!interaction.isCommand()) return;
+
+    // if the previous download failed, tries again
+    if (failedDownload) {
+        download();
+    
+    }
+
+    // if two in a row have failed, gives up and warns user
+    // Prevents overwriting of data with old data
+    if (failedDownload) {
+        await interaction.reply("Failed to connect to dropbox. Try again in a couple minutes");
+        return;
+    }
+
 	if (interaction.commandName === 'update') { 
         const demos = interaction.options.get('demolitions').value;
 		const exterms = interaction.options.get('exterminations').value;
@@ -254,7 +202,9 @@ client.on('interaction', async interaction => {
         //console.log(interaction.user.id);
     }
 
-    if (interaction.commandName === 'authorize') { 
+    if (interaction.commandName === 'authorize') {
+        // Allows moderators to authorize users to post their scores
+        // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
         const user = interaction.options.get('user').value;
         let name = interaction.options.get('name')?.value;
 
