@@ -391,18 +391,18 @@ async function addScores(authorized, demos, exterms, name, interaction) {
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === 0) {
-        if (parseInt(demos, 10) > 15000) {
+        if (demos > 15000) {
             await interaction.reply("Congratulations, you have over 15k Demolitions! " +
                 "New submissions with high scores require manual review from an admin. " +
-                "Please send a screenshot of your stats to this channel or an admin. If you have any " +
+                "Please send a screenshot of your stats to this channel. If you have any " +
                 "questions, please contact an admin or JerryTheBee");
             return;
         }
 
-        if (parseInt(exterms, 10) > 500) {
+        if (exterms > 500) {
             await interaction.reply("Congratulations, you have over 500 Exterminations! " +
                 "New submissions with high scores require manual review from an admin. " +
-                "Please send a screenshot of your stats to this channel or an admin. If you have any " +
+                "Please send a screenshot of your stats to this channel. If you have any " +
                 "questions, please contact an admin or JerryTheBee");
             return;
         }
@@ -412,12 +412,12 @@ async function addScores(authorized, demos, exterms, name, interaction) {
         // Checks against the top score
         // Only users authorized to update the top score are allowed to
         // Prevents abuse by authorized users
-        if (parseInt(demos, 10) > parseInt(highscores.leaderDemos, 10)) {
+        if (demos, 10 > parseInt(highscores.leaderDemos, 10)) {
             await interaction.reply("Congrats on the top place for Demos! " +
                 "Please send proof to an admin before we can verify your spot.");
             return;
         }
-        if (parseInt(exterms, 10) > parseInt(highscores.leaderExterm, 10)) {
+        if (exterms > parseInt(highscores.leaderExterm, 10)) {
             await interaction.reply("Congrats on the top place for Exterminations! " +
                 "Please send proof to an admin before we can verify your spot.");
             // Authorized users can update scores lower than the top spot
@@ -435,7 +435,7 @@ async function addScores(authorized, demos, exterms, name, interaction) {
         interaction.channel.send("Congratulations on a " + Math.floor(demos / 10000) + "0,000 demolition milestone!");
     }
 
-    if (leaderboard[name].Exterminations / 1000 < exterms / 1000) {
+    if (Math.floor(leaderboard[name].Exterminations / 1000) < Math.floor(exterms / 1000)) {
         interaction.channel.send("Congratulations on a " + Math.floor(exterms / 1000) + ",000 extermination milestone!");
     }
 
