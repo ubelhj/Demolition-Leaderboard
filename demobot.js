@@ -33,7 +33,7 @@ client.on("message", async message => {
 
 
     if (message.content.toLowerCase() === 'd: deploy' && message.author.id === client.application?.owner.id) {
-		const data = {
+		const update = {
 			name: 'update',
 			description: 'Updates your score on the leaderboard',
             options: [
@@ -58,8 +58,29 @@ client.on("message", async message => {
             ],
 		};
 
-		const command = await client.guilds.cache.get('343166009286459402')?.commands.create(data);
-		console.log(command);
+		const updateCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(update);
+
+        const authorize = {
+			name: 'authorize',
+			description: '(mod only) Allow a user to post scores over 15k demos and/or 500 exterms',
+            options: [
+                {
+                    name: 'user',
+                    type: 'USER',
+                    description: 'User to authorize',
+                    required: true,
+		        },
+                {
+                    name: 'name',
+                    type: 'STRING',
+                    description: 'User\'s name to display on the leaderboard. Optional if already on leaderboard',
+                    required: false,
+		        }
+            ],
+		};
+
+		const authorizeCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(authorize);
+		//console.log(command);
 	}
 
     /*
@@ -231,7 +252,33 @@ client.on('interaction', async interaction => {
         addScores(leaderboard[name].Authorized, demos, exterms, name, author, interaction);
 
         //console.log(interaction.user.id);
-        
+    }
+
+    if (interaction.commandName === 'authorize') { 
+        const user = interaction.options.get('user').value;
+        let name = interaction.options.get('name')?.value;
+
+        let author = interaction.user.id;
+
+        if (!mods[author]) {
+            await interaction.reply({content: "Only mods can use this command", ephemeral: true});
+            return;
+        }
+
+        // if there is no name supplied
+        if (!name) {
+            // if the idmap doesn't include this discord ID and no name was given, returns and warns user
+            if (!idmap[user]) {
+                await interaction.reply("User isn't mapped to a name");
+                return;
+            } else {
+                name = idmap[user];
+            }
+        }
+
+        //interaction.channel.send("mod " + author + " is authorizing user " + user + " aka " + name);
+
+        authorize(name, user, interaction);
     }
 });
 
@@ -321,32 +368,23 @@ function download() {
     }
 }
 
-function authorize(args, message) {
-    // defines the user's name
-    let name = args[2];
-    if (args.length > 3) {
-        for (let i = 3; i < args.length; i++) {
-            name = name + " " + args[i];
-        }
-    }
-    console.log(name);
-
+function authorize(name, id, message) {
     // If the user isn't in the leaderboard, adds them
     if (!leaderboard[name]) {
         leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
     }
 
     // Links ID to score and authorizes
-    leaderboard[name].Discord = args[1];
+    leaderboard[name].Discord = id;
     leaderboard[name].Authorized = 1;
 
     // Changes ID map to allow name changes of authorized users
-    idmap[args[1]] = name;
+    idmap[id] = name;
     uploadIdMap(message);
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.channel.send("Authorized " + name);
+    message.reply("Authorized " + name);
     console.log("Authorized " + name);
 }
 
