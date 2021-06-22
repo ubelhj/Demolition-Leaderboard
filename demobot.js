@@ -32,43 +32,43 @@ client.on("message", async message => {
     if (message.author.bot) return;
 
     if (message.content.toLowerCase() === 'd: deploy' && message.author.id === client.application?.owner.id) {
-		const update = {
-			name: 'update',
-			description: 'Updates your score on the leaderboard',
+        const update = {
+            name: 'update',
+            description: 'Updates your score on the leaderboard',
             options: [
                 {
                     name: 'demolitions',
                     type: 'INTEGER',
                     description: 'The number of demolitions you have',
                     required: true,
-		        },
+                },
                 {
                     name: 'exterminations',
                     type: 'INTEGER',
                     description: 'The number of exterminations you have',
                     required: true,
-		        },
+                },
                 {
                     name: 'name',
                     type: 'STRING',
                     description: 'Your name to display on the leaderboard. Optional after the first time used',
                     required: false,
-		        }
+                }
             ],
-		};
+        };
 
-		const updateCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(update);
+        const updateCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(update);
 
         const authorize = {
-			name: 'authorize',
-			description: '(mod only) Allow a user to post scores over 15k demos and/or 500 exterms',
+            name: 'authorize',
+            description: '(mod only) Change a user\'s score posting level',
             options: [
                 {
                     name: 'user',
                     type: 'USER',
                     description: 'User to authorize',
                     required: true,
-		        },
+                },
                 {
                     name: 'level',
                     type: 'INTEGER',
@@ -80,7 +80,7 @@ client.on("message", async message => {
                             value: 0,
                         },
                         {
-                            name: '15k+ demos',
+                            name: '15k+ demolitions and / or 500+ exterminations',
                             value: 1,
                         },
                         {
@@ -90,10 +90,33 @@ client.on("message", async message => {
                     ],
                 }
             ],
-		};
+        };
 
-		const authorizeCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(authorize);
-	}
+        const authorizeCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(authorize);
+
+        const name = {
+            name: 'name',
+            description: '(mod only) Change a user\'s leaderboard name',
+            options: [
+                {
+                    name: 'user',
+                    type: 'USER',
+                    description: 'User to authorize',
+                    required: true,
+                },
+                {
+                    name: 'name',
+                    type: 'STRING',
+                    description: 'New name for user',
+                    required: true,
+                }
+            ],
+        };
+
+        const nameCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(name);
+
+        console.log("Deployed slash commands");
+    }
 
     /*
 
@@ -107,22 +130,11 @@ client.on("message", async message => {
             return;
         }
     }
-
-    // Allows the top scorer to be changed
-    if (args[0] === "top") {
-        if (mods[author]) {
-            topScore(args, message);
-            return;
-        } else {
-            message.channel.send("Only moderators can set top scores");
-            return;
-        }
-    }
     */
 });
 
 client.on('interaction', async interaction => {
-	if (!interaction.isCommand()) return;
+    if (!interaction.isCommand()) return;
 
     // if the previous download failed, tries again
     if (failedDownload) {
@@ -137,10 +149,10 @@ client.on('interaction', async interaction => {
         return;
     }
 
-	if (interaction.commandName === 'update') { 
+    if (interaction.commandName === 'update') { 
         const demos = interaction.options.get('demolitions').value;
-		const exterms = interaction.options.get('exterminations').value;
-		let name = interaction.options.get('name')?.value;
+        const exterms = interaction.options.get('exterminations').value;
+        let name = interaction.options.get('name')?.value;
 
         let author = interaction.user.id;
 
@@ -159,8 +171,7 @@ client.on('interaction', async interaction => {
                 leaderboard[name].Demos = demos;
                 leaderboard[name].Exterminations = exterms;
                 uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
-                await interaction.reply("Overriden the score of user " + 
-                    name + ": " + demos + " demos, " + exterms + " exterms");
+                await interaction.reply("Overriden the score of user " + name);
                 return;
             }
     
@@ -243,7 +254,7 @@ client.on('interaction', async interaction => {
     if (interaction.commandName === 'name') {
         // Allows moderators to rename users
         const user = interaction.options.get('user').value;
-        let name = interaction.options.get('name').value;
+        const name = interaction.options.get('name').value;
 
         let author = interaction.user.id;
 
@@ -251,6 +262,8 @@ client.on('interaction', async interaction => {
             await interaction.reply({content: "Only mods can use this command", ephemeral: true});
             return;
         }
+
+        nameUser(name, user, interaction);
     }
 });
 
@@ -360,15 +373,13 @@ function authorize(name, id, level, message) {
     console.log("Authorized " + name);
 }
 
-function nameUser(args, message) {
-    // defines the user's name
-    let name = args[2];
-    if (args.length > 3) {
-        for (let i = 3; i < args.length; i++) {
-            name = name + " " + args[i];
-        }
+function nameUser(name, id, message) {
+    //console.log(name);
+
+    let oldAuth = 0;
+    if (idmap[id] && leaderboard[idmap[id]]) {
+        oldAuth = leaderboard[idmap[id]].Authorized;
     }
-    console.log(name);
 
     // If the user isn't in the leaderboard, adds them
     if (!leaderboard[name]) {
@@ -376,16 +387,18 @@ function nameUser(args, message) {
     }
 
     // Links ID to score and doesn't authorize
-    leaderboard[name].Discord = args[1];
+    leaderboard[name].Discord = id;
+    leaderboard[name].Authorized = oldAuth;
 
     // Changes ID mapping of user to give a new name
-    idmap[args[1]] = name;
+    idmap[id] = name;
     uploadIdMap(message);
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.channel.send("Renamed " + name);
-    console.log("Renamed " + name);
+    message.reply("Renamed " + name);
+    //console.log("Renamed " + name);
+    //console.log(leaderboard[name]);
 }
 
 async function addScores(authorized, demos, exterms, name, author, interaction) {
@@ -435,7 +448,7 @@ async function addScores(authorized, demos, exterms, name, author, interaction) 
     leaderboard[name].Demos = demos;
     leaderboard[name].Exterminations = exterms;
     uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
-    await interaction.reply('User ' + author + " has " + demos + " demos, " + exterms + " exterms, and is named " + name);
+    //await interaction.reply('User ' + author + " has " + demos + " demos, " + exterms + " exterms, and is named " + name);
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
@@ -458,7 +471,7 @@ function uploadCSV(message, content) {
         });
 
     console.log("Uploaded CSV");
-    message.channel.send("Uploaded Leaderboard. You can find the live stats here: https://ubelhj.shinyapps.io/demobotR/");
+    message.reply("Uploaded Leaderboard. You can find the live stats here: https://ubelhj.shinyapps.io/demobotR/");
 }
 
 // writes the CSV file leaderboard
