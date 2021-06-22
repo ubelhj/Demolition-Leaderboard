@@ -72,8 +72,10 @@ client.on("message", async message => {
     // if the previous download failed, tries again
     if (failedDownload) {
         download();
+    
     }
 
+    
     // if two in a row have failed, gives up and warns user
     // Prevents overwriting of data with old data
     if (failedDownload) {
@@ -122,87 +124,6 @@ client.on("message", async message => {
         }
     }
 
-    // Crops images of salt so only the chat is shown
-    if (args[0] === "crop") {
-        cropImage(args, message);
-        return;
-    }
-
-    // Ensures proper command syntax
-    // Prevents short commands from messing up data
-    if (args.length < 3) {
-        message.channel.send("Try updating your stats with the following format: " +
-            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
-            "You must include both demos and exterminations");
-        return;
-    }
-
-    // Prevents long commands that probably are people talking about other things
-    if (args.length > 8) {
-        message.channel.send("Try updating your stats with the following format: " +
-            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
-            "Names over 5 words long are not accepted");
-        return;
-    }
-    // Ensures the Demolition and Exterminator counts are numbers and no commas are used
-    if (isNaN(args[0]) || isNaN(args[2])) {
-        message.channel.send("Try updating your stats with the following format : " +
-            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
-            "Ensure there are spaces between each word and there are no commas");
-        return;
-    }
-
-    // Defines user's name
-    let name = args[3];
-    // Sets name variable for long names with multiple spaces
-    // One word names are left alone
-    if (args.length > 4) {
-        for (let i = 4; i < args.length; i++) {
-            name = name + " " + args[i];
-        }
-    }
-
-    console.log(leaderboard[name]);
-
-    // if there's a name, sets it, else tells user to include name
-    if (name != null) {
-        // changed JSON keeps track of if the JSON has been changed
-        let changedJSON = false;
-
-        // If the leaderboard doesn't include the name, adds it
-        if (!leaderboard[name]) {
-            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
-            changedJSON = true;
-        }
-
-        // If the leaderboard doesn't have a discord ID attached, adds it
-        if (!leaderboard[name].Discord) {
-            leaderboard[name].Discord = author;
-            changedJSON = true;
-        }
-
-        if (leaderboard[name].Discord !== author) {
-            message.channel.send("That name is already taken, please try another");
-            return;
-        }
-
-        // If the ID map doesn't have a name attached, adds it
-        if (!idmap[author]) {
-            idmap[author] = name;
-            uploadIdMap(message);
-        }
-
-        if (changedJSON) {
-            uploadJSON(message);
-        }
-    } else {
-        // if the idmap doesn't include this discord ID and no name was given, returns and warns user
-        if (!idmap[author]) {
-            message.channel.send("Account isn't mapped to a name, try again including a name");
-            return;
-        }
-    }
-
     // Backdoor for moderator to upload any data
     // Useful for Reddit users and manual changes
     if (mods[author]) {
@@ -215,16 +136,6 @@ client.on("message", async message => {
         leaderboard[name].Demos = args[0];
         leaderboard[name].Exterminations = args[2];
         uploadFiles("\n\"" + name + "\"," + args[0] + "," + args[2], message);
-        return;
-    }
-
-    // If there is a name mapped to the user's ID, updates that user's stats
-    // Otherwise warns user to use a name
-    // Should not be reached but ensures quality of data
-    if (idmap[author]) {
-        name = idmap[author];
-    } else {
-        message.channel.send("Account isn't mapped to a name, try again including a name");
         return;
     }
 
@@ -246,9 +157,81 @@ client.on('interaction', async interaction => {
 	if (interaction.commandName === 'update') { 
         const demos = interaction.options.get('demolitions').value;
 		const exterms = interaction.options.get('exterminations').value;
-		const name = interaction.options.get('name')?.value;
+		let name = interaction.options.get('name')?.value;
+
+        let author = interaction.user.id;
+
+        // if there is a name supplied
+        if (name) {
+            // changed JSON keeps track of if the JSON has been changed
+            let changedJSON = false;
+    
+            // If the leaderboard doesn't include the name, adds it
+            if (!leaderboard[name]) {
+                leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+                changedJSON = true;
+            }
+
+            if (mods[author]) {
+                leaderboard[name].Demos = demos;
+                leaderboard[name].Exterminations = exterms;
+                uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
+                await interaction.reply("Overriden the score of user " + 
+                    name + ": " + demos + " demos, " + exterms + " exterms");
+                return;
+            }
+    
+            // If the leaderboard doesn't have a discord ID attached, adds it
+            if (!leaderboard[name].Discord) {
+                leaderboard[name].Discord = author;
+                changedJSON = true;
+            }
+    
+            if (leaderboard[name].Discord !== author) {
+                await interaction.reply("That name is already taken, please try another");
+                return;
+            }
+    
+            // If the ID map doesn't have a name attached, adds it
+            if (!idmap[author]) {
+                idmap[author] = name;
+                uploadIdMap(interaction);
+            }
+    
+            if (changedJSON) {
+                uploadJSON(interaction);
+            }
+        } else {
+            // if the idmap doesn't include this discord ID and no name was given, returns and warns user
+            if (!idmap[author]) {
+                await interaction.reply("Account isn't mapped to a name, try again including a name");
+                return;
+            }
+        }
+
+        // If there is a name mapped to the user's ID, updates that user's stats
+        // Otherwise warns user to use a name
+        // Should not be reached but ensures quality of data
+        if (idmap[author]) {
+            name = idmap[author];
+        } else {
+            await interaction.reply("Account isn't mapped to a name, try again including a name");
+            return;
+        }
+
+        // Ensures user can only change their score
+        // Warns user if the account is registered to another player
+        // should be unreachable but this is to make sure
+        if (leaderboard[name].Discord !== author) {
+            interaction.channel.send("Cannot update leaderboard for other users, " +
+                "Please DM JerryTheBee if something is wrong");
+            return;
+        }
+
+        addScores(leaderboard[name].Authorized, demos, exterms, name, author, interaction);
+
         //console.log(interaction.user.id);
-        await interaction.reply('User ' + interaction.user.id + " has " + demos + " demos, " + exterms + " exterms, and is named " + name);
+        
     }
 });
 
@@ -426,20 +409,20 @@ function topScore(args, message) {
     console.log("Top score authorized " + name);
 }
 
-function addScores(authorized, args, name, message) {
+async function addScores(authorized, demos, exterms, name, author, interaction) {
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === 0) {
-        if (parseInt(args[0], 10) > 15000) {
-            message.channel.send("Congratulations, you have over 15k Demolitions! " +
+        if (parseInt(demos, 10) > 15000) {
+            await interaction.reply("Congratulations, you have over 15k Demolitions! " +
                 "New submissions with high scores require manual review from an admin. " +
                 "Please send a screenshot of your stats to this channel or an admin. If you have any " +
                 "questions, please contact an admin or JerryTheBee");
             return;
         }
 
-        if (parseInt(args[2], 10) > 500) {
-            message.channel.send("Congratulations, you have over 500 Exterminations! " +
+        if (parseInt(exterms, 10) > 500) {
+            await interaction.reply("Congratulations, you have over 500 Exterminations! " +
                 "New submissions with high scores require manual review from an admin. " +
                 "Please send a screenshot of your stats to this channel or an admin. If you have any " +
                 "questions, please contact an admin or JerryTheBee");
@@ -451,64 +434,29 @@ function addScores(authorized, args, name, message) {
         // Checks against the top score
         // Only users authorized to update the top score are allowed to
         // Prevents abuse by authorized users
-        if (parseInt(args[0], 10) > parseInt(highscores.leaderDemos, 10)) {
-            message.channel.send("Congrats on the top place for Demos! " +
-                "Please send verification to an admin before we can verify your spot.");
+        if (parseInt(demos, 10) > parseInt(highscores.leaderDemos, 10)) {
+            await interaction.reply("Congrats on the top place for Demos! " +
+                "Please send proof to an admin before we can verify your spot.");
             return;
         }
-        if (parseInt(args[2], 10) > parseInt(highscores.leaderExterm, 10)) {
-            message.channel.send("Congrats on the top place for Exterminations! " +
-                "Please send verification to an admin before we can verify your spot.");
+        if (parseInt(exterms, 10) > parseInt(highscores.leaderExterm, 10)) {
+            await interaction.reply("Congrats on the top place for Exterminations! " +
+                "Please send proof to an admin before we can verify your spot.");
             // Authorized users can update scores lower than the top spot
             return;
         }
     }
 
     if (authorized === 2) {
-        highscores.leaderDemos = args[0];
-        highscores.leaderExterm = args[2];
+        highscores.leaderDemos = demos;
+        highscores.leaderExterm = exterms;
         uploadHighScores();
     }
 
-    leaderboard[name].Demos = args[0];
-    leaderboard[name].Exterminations = args[2];
-    uploadFiles("\n\"" + name + "\"," + args[0] + "," + args[2], message);
-}
-
-// Crops images of rocket league down to just see chat
-function cropImage(args, message) {
-    let imageUrl = null;
-    
-    if (message.attachments.array()[0]) {
-        imageUrl = message.attachments.array()[0].url;
-    } 
-    
-    if (!imageUrl) {
-        imageUrl = args[1];
-    } 
-    
-    if (!imageUrl) {
-        message.channel.send("Please use this command with an image attachment or URL");
-        return;
-    } 
-    
-    Jimp.read(imageUrl).then(function (image) {
-        image.crop(27, 27, 442 - 27, 230 - 27);
-        image.getBuffer(Jimp.MIME_PNG, function (err, buff) {
-            if (err) {
-                console.log(err);
-                return;
-            }
-            message.channel.send("Salt from <@" + message.author.id + ">");
-            message.channel.send(new Discord.Attachment(buff)).catch(function (err) {
-                console.log(err);
-            });
-            message.delete().catch(console.error);
-        });
-    }).catch(function (err) {
-        message.channel.send("Error in cropping. Please try again");
-        console.log(err);
-    });
+    leaderboard[name].Demos = demos;
+    leaderboard[name].Exterminations = exterms;
+    uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
+    await interaction.reply('User ' + author + " has " + demos + " demos, " + exterms + " exterms, and is named " + name);
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
