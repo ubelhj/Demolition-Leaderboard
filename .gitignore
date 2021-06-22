@@ -1,2 +1,7 @@
 config.json
 .Rproj.user
+.idea/workspace.xml
+clean leaderboard.json
+heroku
+leaderboard7_7_19.json
+node_modules/
