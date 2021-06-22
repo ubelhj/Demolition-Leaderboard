@@ -431,6 +431,14 @@ async function addScores(authorized, demos, exterms, name, interaction) {
         uploadHighScores();
     }
 
+    if (Math.floor(leaderboard[name].Demos / 10000) < Math.floor(demos / 10000)) {
+        interaction.channel.send("Congratulations on a " + Math.floor(demos / 10000) + "0,000 demolition milestone!");
+    }
+
+    if (leaderboard[name].Exterminations / 1000 < exterms / 1000) {
+        interaction.channel.send("Congratulations on a " + Math.floor(exterms / 1000) + ",000 extermination milestone!");
+    }
+
     leaderboard[name].Demos = demos;
     leaderboard[name].Exterminations = exterms;
     uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
