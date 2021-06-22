@@ -5,3 +5,6 @@ clean leaderboard.json
 heroku
 leaderboard7_7_19.json
 node_modules/
+idmap.json
+leaderboard.csv
+leaderboard.json

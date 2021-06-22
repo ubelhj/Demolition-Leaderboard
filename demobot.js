@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
-const client = new Discord.Client();
-//const config = require("./config.json"); // For local Testing only
-const config = process.env; // for heroku usage
+const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
+const config = require("./config.json"); // For local Testing only
+//const config = process.env; // for heroku usage
 
 // hold jsons
 let leaderboard;
@@ -25,10 +25,44 @@ client.on("ready", () => {
 });
 
 // when the bot sees a message, begins running leaderboard update
-client.on("message", message => {
+client.on("message", async message => {
+    if (!client.application?.owner) await client.application?.fetch();
+
     // Ignores messages from bots to stop abuse
     if (message.author.bot) return;
 
+
+    if (message.content.toLowerCase() === 'd: deploy' && message.author.id === client.application?.owner.id) {
+		const data = {
+			name: 'update',
+			description: 'Updates your score on the leaderboard',
+            options: [
+                {
+                    name: 'demolitions',
+                    type: 'INTEGER',
+                    description: 'The number of demolitions you have',
+                    required: true,
+		        },
+                {
+                    name: 'exterminations',
+                    type: 'INTEGER',
+                    description: 'The number of exterminations you have',
+                    required: true,
+		        },
+                {
+                    name: 'name',
+                    type: 'STRING',
+                    description: 'Your name to display on the leaderboard. Optional after the first time used',
+                    required: false,
+		        }
+            ],
+		};
+
+		const command = await client.guilds.cache.get('343166009286459402')?.commands.create(data);
+		console.log(command);
+	}
+
+    /*
     // Ensures the message starts with the prefix "D:"
     if (message.content.indexOf(config.prefix) !== 0) return;
 
@@ -204,6 +238,18 @@ client.on("message", message => {
     }
 
     addScores(leaderboard[name].Authorized, args, name, message);
+    */
+});
+
+client.on('interaction', async interaction => {
+	if (!interaction.isCommand()) return;
+	if (interaction.commandName === 'update') { 
+        const demos = interaction.options.get('demolitions').value;
+		const exterms = interaction.options.get('exterminations').value;
+		const name = interaction.options.get('name')?.value;
+        //console.log(interaction.user.id);
+        await interaction.reply('User ' + interaction.user.id + " has " + demos + " demos, " + exterms + " exterms, and is named " + name);
+    }
 });
 
 function uploadFiles(updatedLeaderboard, message) {
