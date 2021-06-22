@@ -70,11 +70,25 @@ client.on("message", async message => {
                     required: true,
 		        },
                 {
-                    name: 'name',
-                    type: 'STRING',
-                    description: 'User\'s name to display on the leaderboard. Optional if already on leaderboard',
-                    required: false,
-		        }
+                    name: 'level',
+                    type: 'INTEGER',
+                    description: 'What level of authorization?',
+                    required: true,
+                    choices: [
+                        {
+                            name: 'None',
+                            value: 0,
+                        },
+                        {
+                            name: '15k+ demos',
+                            value: 1,
+                        },
+                        {
+                            name: 'Top score on leaderboard',
+                            value: 2,
+                        },
+                    ],
+                }
             ],
 		};
 
@@ -206,7 +220,7 @@ client.on('interaction', async interaction => {
         // Allows moderators to authorize users to post their scores
         // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
         const user = interaction.options.get('user').value;
-        let name = interaction.options.get('name')?.value;
+        const level = interaction.options.get('level').value;
 
         let author = interaction.user.id;
 
@@ -215,20 +229,28 @@ client.on('interaction', async interaction => {
             return;
         }
 
-        // if there is no name supplied
-        if (!name) {
-            // if the idmap doesn't include this discord ID and no name was given, returns and warns user
-            if (!idmap[user]) {
-                await interaction.reply("User isn't mapped to a name");
-                return;
-            } else {
-                name = idmap[user];
-            }
-        }
+        // if the idmap doesn't include this discord ID and no name was given, returns and warns user
+        if (!idmap[user]) {
+            await interaction.reply({content:"User isn't mapped to a name", ephemeral: true});
+            return;
+        } 
 
         //interaction.channel.send("mod " + author + " is authorizing user " + user + " aka " + name);
 
-        authorize(name, user, interaction);
+        authorize(idmap[user], user, level, interaction);
+    }
+
+    if (interaction.commandName === 'name') {
+        // Allows moderators to rename users
+        const user = interaction.options.get('user').value;
+        let name = interaction.options.get('name').value;
+
+        let author = interaction.user.id;
+
+        if (!mods[author]) {
+            await interaction.reply({content: "Only mods can use this command", ephemeral: true});
+            return;
+        }
     }
 });
 
@@ -318,7 +340,7 @@ function download() {
     }
 }
 
-function authorize(name, id, message) {
+function authorize(name, id, level, message) {
     // If the user isn't in the leaderboard, adds them
     if (!leaderboard[name]) {
         leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
@@ -326,7 +348,7 @@ function authorize(name, id, message) {
 
     // Links ID to score and authorizes
     leaderboard[name].Discord = id;
-    leaderboard[name].Authorized = 1;
+    leaderboard[name].Authorized = level;
 
     // Changes ID map to allow name changes of authorized users
     idmap[id] = name;
@@ -334,7 +356,7 @@ function authorize(name, id, message) {
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.reply("Authorized " + name);
+    message.reply("Authorized " + name + " at level " + level);
     console.log("Authorized " + name);
 }
 
@@ -364,37 +386,6 @@ function nameUser(args, message) {
     uploadJSON(message);
     message.channel.send("Renamed " + name);
     console.log("Renamed " + name);
-}
-
-function topScore(args, message) {
-    // defines the user's name
-    let name = args[2];
-    if (args.length > 3) {
-        for (let i = 3; i < args.length; i++) {
-            name = name + " " + args[i];
-        }
-    }
-    console.log(name);
-
-    // If the user isn't in the leaderboard, adds them
-    if (!leaderboard[name]) {
-        leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
-    }
-
-    // Links ID to score and authorizes
-    leaderboard[name].Discord = args[1];
-    leaderboard[name].Authorized = 2;
-
-    // Changes ID map to allow name changes of authorized users
-    if(!idmap[args[1]] === name) {
-        idmap[args[1]] = name;
-        uploadIdMap(message);
-    }
-
-    // Uploads the updated JSON Leaderboard
-    uploadJSON(message);
-    message.channel.send(name + " can now post top scores");
-    console.log("Top score authorized " + name);
 }
 
 async function addScores(authorized, demos, exterms, name, author, interaction) {
