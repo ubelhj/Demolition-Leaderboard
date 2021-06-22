@@ -117,20 +117,6 @@ client.on("message", async message => {
 
         console.log("Deployed slash commands");
     }
-
-    /*
-
-    // Allows creator or moderators to set names of users
-    if (args[0] === "name") {
-        if (mods[author]) {
-            nameUser(args, message);
-            return;
-        } else {
-            message.channel.send("Only moderators can rename users");
-            return;
-        }
-    }
-    */
 });
 
 client.on('interaction', async interaction => {
@@ -222,7 +208,7 @@ client.on('interaction', async interaction => {
             return;
         }
 
-        addScores(leaderboard[name].Authorized, demos, exterms, name, author, interaction);
+        addScores(leaderboard[name].Authorized, demos, exterms, name, interaction);
 
         //console.log(interaction.user.id);
     }
@@ -369,8 +355,8 @@ function authorize(name, id, level, message) {
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.reply("Authorized " + name + " at level " + level);
-    console.log("Authorized " + name);
+    message.reply("Authorized " + name);
+    console.log("Authorized " + name + " at level " + level);
 }
 
 function nameUser(name, id, message) {
@@ -401,7 +387,7 @@ function nameUser(name, id, message) {
     //console.log(leaderboard[name]);
 }
 
-async function addScores(authorized, demos, exterms, name, author, interaction) {
+async function addScores(authorized, demos, exterms, name, interaction) {
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === 0) {
@@ -455,7 +441,7 @@ async function addScores(authorized, demos, exterms, name, author, interaction) 
 function uploadCSV(message, content) {
     writeCSV(message, content)
         .then(result => {
-            console.log(result);
+            //console.log(result);
             fs.readFile("leaderboard.csv", function (err, data) {
                 if (err) {
                     message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
