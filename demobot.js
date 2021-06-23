@@ -442,7 +442,7 @@ async function addScores(authorized, demos, exterms, name, interaction) {
     leaderboard[name].Demos = demos;
     leaderboard[name].Exterminations = exterms;
     uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
-    //await interaction.reply('User ' + author + " has " + demos + " demos, " + exterms + " exterms, and is named " + name);
+    await interaction.reply("<@" + interaction.user.id + "> has " + demos + " demos and " + exterms + " exterms");
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
@@ -465,7 +465,7 @@ function uploadCSV(message, content) {
         });
 
     console.log("Uploaded CSV");
-    message.reply("Uploaded Leaderboard. You can find the live stats here: https://ubelhj.shinyapps.io/demobotR/");
+    message.channel.send("Uploaded Leaderboard. You can find the live stats here: https://ubelhj.shinyapps.io/demobotR/");
 }
 
 // writes the CSV file leaderboard
