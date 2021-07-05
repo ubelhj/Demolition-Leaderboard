@@ -119,7 +119,7 @@ client.on("message", async message => {
     }
 
     // Ensures the message starts with the prefix "D:"
-    if (message.content.indexOf(config.prefix) !== 0) return;
+    if (message.content.toUpperCase().indexOf(config.prefix) !== 0) return;
 
     // if the previous download failed, tries again
     if (failedDownload) {
@@ -134,96 +134,66 @@ client.on("message", async message => {
         return;
     }
 
-    // Defines args
-    const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
+    const regexVal = /[dD]:\s*(\d+)\s+[eE]:\s*(\d+)/;
 
-    console.log(args);
+    // regex ensures proper command usage
+    let matchResults = message.content.match(regexVal);
+
+    console.log(matchResults);
+
+    if (!matchResults) {
+        message.reply("Try updating your stats with the following format: " +
+            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
+            "Or try the new /update command!");
+        return;
+    }
+
+    let demos = matchResults[1];
+    let exterms = matchResults[2];
 
     // Uses author Discord id to verify identity
     // Discord gives every user an 18 digit identifier that cannot be duplicated
     let author = message.author.id;
-    args[0] = args[0].toLowerCase();
-
-    // Ensures proper command syntax
-    // Prevents short commands from messing up data
-    if (args.length < 3) {
-        message.reply("Try updating your stats with the following format: " +
-            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
-            "You must include both demos and exterminations");
-        return;
-    }
-
-    // Prevents long commands that probably are people talking about other things
-    if (args.length > 8) {
-        message.reply("Try updating your stats with the following format: " +
-            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
-            "Names over 5 words long are not accepted");
-        return;
-    }
-
-    // Ensures the Demolition and Exterminator counts are integers and no commas are used
-    let demos = parseInt(args[0], 10);
-    let exterms = parseInt(args[2], 10);
-
-    if (isNaN(demos) ||  isNaN(exterms) ) {
-        message.reply("Try updating your stats with the following format : " +
-            "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
-            "Ensure there are spaces between each word and there are no commas");
-        return;
-    }
-
-    // Defines user's name
-    let name = args[3];
-    // Sets name variable for long names with multiple spaces
-    // One word names are left alone
-    if (args.length > 4) {
-        for (let i = 4; i < args.length; i++) {
-            name = name + " " + args[i];
-        }
-    }
 
     // If there is a name mapped to the user's ID, updates that user's stats
     // Otherwise warns user to use a name
     // Should not be reached but ensures quality of data
-    if (idmap[author]) {
-        name = idmap[author];
+    if (!idmap[author]) {
+        // if the idmap doesn't include this discord ID and no name was given, returns and warns user
+        await message.reply("Account isn't mapped to a name, try using /update instead!");
+        return;
     }
 
-    // if there is a name supplied
-    if (name) {
-        // changed JSON keeps track of if the JSON has been changed
-        let changedJSON = false;
+    let name = idmap[author];
 
-        // If the leaderboard doesn't include the name, adds it
-        if (!leaderboard[name]) {
-            leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
-            changedJSON = true;
-        }
+    // changed JSON keeps track of if the JSON has been changed
+    let changedJSON = false;
 
-        // If the leaderboard doesn't have a discord ID attached, adds it
-        if (!leaderboard[name].Discord) {
-            leaderboard[name].Discord = author;
-            changedJSON = true;
-        }
+    // If the leaderboard doesn't include the name, adds it
+    if (!leaderboard[name]) {
+        leaderboard[name] = {Authorized: 0, Discord: "", Demos: 0, Exterminations: 0};
+        changedJSON = true;
+    }
 
-        if (leaderboard[name].Discord !== author) {
-            await message.reply("That name is already taken, please try another");
-            return;
-        }
+    // If the leaderboard doesn't have a discord ID attached, adds it
+    if (!leaderboard[name].Discord) {
+        leaderboard[name].Discord = author;
+        changedJSON = true;
+    }
 
-        // If the ID map doesn't have a name attached, adds it
-        if (!idmap[author]) {
-            idmap[author] = name;
-            uploadIdMap(message);
-        }
-
-        if (changedJSON) {
-            uploadJSON(message);
-        }
-    } else {
-        // if the idmap doesn't include this discord ID and no name was given, returns and warns user
-        await message.reply("Account isn't mapped to a name, try again including a name");
+    if (leaderboard[name].Discord !== author) {
+        await message.reply("That name is already taken, please try another");
         return;
+    }
+
+    // If the ID map doesn't have a name attached, adds it
+    if (!idmap[author]) {
+        idmap[author] = name;
+        uploadIdMap(message);
+    }
+
+    if (changedJSON) {
+        uploadJSON(message);
     }
 
     // Ensures user can only change their score
@@ -542,6 +512,11 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
             // Authorized users can update scores lower than the top spot
             return;
         }
+    }
+
+    if (exterms * 7 > demos) {
+        await interaction.reply("Make sure your exterms are less than 7 times your demos");
+        return;
     }
 
     if (authorized === 2) {
