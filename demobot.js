@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
-const config = require("./config.json"); // For local Testing only
-//const config = process.env; // for heroku usage
+//const config = require("./config.json"); // For local Testing only
+const config = process.env; // for heroku usage
 
 // hold jsons
 let leaderboard;
@@ -14,7 +14,7 @@ const mods = require("./moderators.json");
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
-const Jimp = require("jimp");
+//const Jimp = require("jimp");
 let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 let failedDownload = false;
 
