@@ -181,8 +181,12 @@ client.on("message", async message => {
         changedJSON = true;
     }
 
+    // Ensures user can only change their score
+    // Warns user if the account is registered to another player
+    // should be unreachable but this is to make sure
     if (leaderboard[name].Discord !== author) {
-        await message.reply("That name is already taken, please try another");
+        await message.reply("Cannot update leaderboard for other users, " +
+            "Please DM JerryTheBee if something is wrong");
         return;
     }
 
@@ -194,15 +198,6 @@ client.on("message", async message => {
 
     if (changedJSON) {
         uploadJSON(message);
-    }
-
-    // Ensures user can only change their score
-    // Warns user if the account is registered to another player
-    // should be unreachable but this is to make sure
-    if (leaderboard[name].Discord !== author) {
-        await message.reply("Cannot update leaderboard for other users, " +
-            "Please DM JerryTheBee if something is wrong");
-        return;
     }
 
     addScores(leaderboard[name].Authorized, demos, exterms, name, author, message);
