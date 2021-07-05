@@ -162,15 +162,15 @@ client.on("message", async message => {
     }
 
     // Ensures the Demolition and Exterminator counts are integers and no commas are used
-    if (isNaN(args[0]) || !Number.isInteger(args[0]) || isNaN(args[2]) || !Number.isInteger(args[2])) {
+    let demos = parseInt(args[0], 10);
+    let exterms = parseInt(args[2], 10);
+
+    if (isNaN(demos) ||  isNaN(exterms) ) {
         message.reply("Try updating your stats with the following format : " +
             "D: # of demos E: # of exterminations Your Username\nEx: ```D: 2000 E: 1000 Demo Leaderboard```\n" +
             "Ensure there are spaces between each word and there are no commas");
         return;
     }
-
-    let demos = args[0];
-    let exterms = args[2];
 
     // Defines user's name
     let name = args[3];
@@ -235,7 +235,7 @@ client.on("message", async message => {
         return;
     }
 
-    addScores(leaderboard[name].Authorized, demos, exterms, name, message);
+    addScores(leaderboard[name].Authorized, demos, exterms, name, author, message);
 });
 
 client.on('interaction', async interaction => {
@@ -327,7 +327,7 @@ client.on('interaction', async interaction => {
             return;
         }
 
-        addScores(leaderboard[name].Authorized, demos, exterms, name, interaction);
+        addScores(leaderboard[name].Authorized, demos, exterms, name, author, interaction);
 
         //console.log(interaction.user.id);
     }
@@ -506,7 +506,7 @@ function nameUser(name, id, message) {
     //console.log(leaderboard[name]);
 }
 
-async function addScores(authorized, demos, exterms, name, interaction) {
+async function addScores(authorized, demos, exterms, name, id, interaction) {
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === 0) {
@@ -553,7 +553,7 @@ async function addScores(authorized, demos, exterms, name, interaction) {
     leaderboard[name].Demos = demos;
     leaderboard[name].Exterminations = exterms;
     uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
-    await interaction.reply("<@" + interaction.user.id + "> has " + demos + " demos and " + exterms + " exterms");
+    await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms");
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
