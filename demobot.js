@@ -9,7 +9,8 @@ let idmap;
 let highscores;
 
 // holds discord IDs of authorized moderators
-const mods = require("./moderators.json");
+//const mods = require("./moderators.json");
+const modRoleID = 431269016322048001;
 
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
@@ -237,7 +238,7 @@ client.on('interaction', async interaction => {
                 changedJSON = true;
             }
 
-            if (mods[author]) {
+            if (interaction.member.roles.cache.has(modRoleID)) {
                 leaderboard[name].Demos = demos;
                 leaderboard[name].Exterminations = exterms;
                 uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
@@ -305,7 +306,7 @@ client.on('interaction', async interaction => {
 
         let author = interaction.user.id;
 
-        if (!mods[author]) {
+        if (!interaction.member.roles.cache.has(modRoleID)) {
             await interaction.reply({content: "Only mods can use this command", ephemeral: true});
             return;
         }
@@ -328,7 +329,7 @@ client.on('interaction', async interaction => {
 
         let author = interaction.user.id;
 
-        if (!mods[author]) {
+        if (!interaction.member.roles.cache.has(modRoleID)) {
             await interaction.reply({content: "Only mods can use this command", ephemeral: true});
             return;
         }
@@ -479,7 +480,7 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
             await interaction.reply("Congratulations, you have over 15k Demolitions! " +
                 "New submissions with high scores require manual review from an admin. " +
                 "Please send a screenshot of your stats to this channel. If you have any " +
-                "questions, please contact an admin or JerryTheBee");
+                "questions, please ask here");
             return;
         }
 
@@ -487,7 +488,7 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
             await interaction.reply("Congratulations, you have over 500 Exterminations! " +
                 "New submissions with high scores require manual review from an admin. " +
                 "Please send a screenshot of your stats to this channel. If you have any " +
-                "questions, please contact an admin or JerryTheBee");
+                "questions, please ask here");
             return;
         }
     }

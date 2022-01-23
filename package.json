@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^13.0.0-dev.c850ae10270076c4b2e10b130dd8f88eed4ed201",
+    "discord.js": "^13.6.0",
     "dropbox": "^4.0.30",
     "es6-promise": "^4.2.8",
     "isomorphic-fetch": "^3.0.0",
