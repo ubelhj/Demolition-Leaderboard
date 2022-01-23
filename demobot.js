@@ -10,7 +10,7 @@ let highscores;
 
 // holds discord IDs of authorized moderators
 //const mods = require("./moderators.json");
-const modRoleID = 431269016322048001;
+const modRoleID = '431269016322048001';
 
 const fs = require('fs');
 const fetch = require('isomorphic-fetch');
@@ -26,7 +26,7 @@ client.on("ready", () => {
 });
 
 // when the bot sees a message, begins running leaderboard update
-client.on("message", async message => {
+client.on("messageCreate", async message => {
     if (!client.application?.owner) await client.application?.fetch();
 
     // Ignores messages from bots to stop abuse
@@ -204,7 +204,7 @@ client.on("message", async message => {
     addScores(leaderboard[name].Authorized, demos, exterms, name, author, message);
 });
 
-client.on('interaction', async interaction => {
+client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     // if the previous download failed, tries again
