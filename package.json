@@ -18,5 +18,8 @@
     "isomorphic-fetch": "^3.0.0",
     "jimp": "^0.13.0",
     "json2csv": "^4.5.4"
+  },
+  "engines": {
+    "node": ">=16.6"
   }
 }
