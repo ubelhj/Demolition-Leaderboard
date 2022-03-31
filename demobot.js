@@ -122,6 +122,9 @@ client.on("messageCreate", async message => {
     // Ensures the message starts with the prefix "D:"
     if (message.content.toUpperCase().indexOf(config.prefix) !== 0) return;
 
+    message.reply("Leaderboard down for maintenance");
+    return;
+
     // if the previous download failed, tries again
     if (failedDownload) {
         download();
@@ -221,6 +224,8 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.commandName === 'update') { 
+        message.reply("Leaderboard down for maintenance");
+        return;
         const demos = interaction.options.get('demolitions').value;
         const exterms = interaction.options.get('exterminations').value;
         let name = interaction.options.get('name')?.value;
