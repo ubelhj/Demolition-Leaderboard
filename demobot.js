@@ -224,7 +224,7 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.commandName === 'update') { 
-        message.reply("Leaderboard down for maintenance");
+        interaction.reply("Leaderboard down for maintenance");
         return;
         const demos = interaction.options.get('demolitions').value;
         const exterms = interaction.options.get('exterminations').value;
