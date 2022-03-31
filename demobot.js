@@ -415,7 +415,7 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
         uploadHighScores();
     }
 
-    leaderboard[id].Demos = demos;
+    leaderboard[id].Demolitions = demos;
     leaderboard[id].Exterminations = exterms;
     let currTime = new Date();
     let currTimeString = currTime.toISOString();
@@ -466,7 +466,7 @@ async function writeCSV(message, content) {
 
 // uploads the JSON file leaderboard to Dropbox
 function uploadJSON(message) {
-    dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard), mode: "overwrite"})
+    dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard, null, "\t"), mode: "overwrite"})
         .catch(function (error) {
             message.channel.send("Dropbox error for JSON Leaderboard. Try same command again");
             console.error(error);
@@ -477,7 +477,7 @@ function uploadJSON(message) {
 
 // uploads the JSON file high scores to Dropbox
 function uploadHighScores(message) {
-    dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores), mode: "overwrite"})
+    dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores, null, "\t"), mode: "overwrite"})
         .catch(function (error) {
             message.channel.send("Dropbox error for highscores. Try same command again");
             console.error(error);
