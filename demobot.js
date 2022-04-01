@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
-//const config = require("./config.json"); // For local Testing only
-const config = process.env; // for heroku usage
+const config = require("./config.json"); // For local Testing only
+//const config = process.env; // for heroku usage
 
 // hold jsons
 let leaderboard;
@@ -114,7 +114,24 @@ client.on("messageCreate", async message => {
 
         const nameCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(name);
 
+        const country = {
+            name: 'country',
+            description: 'Set your country to be shown on the leaderboard',
+            options: [
+                {
+                    name: 'country',
+                    type: 'STRING',
+                    description: 'New country to show',
+                    required: true,
+                }
+            ],
+        };
+
+        const countryCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(country);
+
         console.log("Deployed slash commands");
+        message.react("✅");
+        return;
     }
 
     // Ensures the message starts with the prefix "D:"
@@ -144,8 +161,6 @@ client.on("messageCreate", async message => {
 
     // regex ensures proper command usage
     let matchResults = message.content.match(regexVal);
-
-    console.log(matchResults);
 
     if (!matchResults) {
         message.reply("Invalid format, please update your stats with the following format: " +
@@ -263,6 +278,24 @@ client.on('interactionCreate', async interaction => {
         }
 
         nameUser(name, user, interaction);
+    }
+
+    if (interaction.commandName === 'country') {
+        const country = interaction.options.get('country').value;
+        let author = interaction.user.id;
+
+        // If the user isn't in the leaderboard, warns user
+        if (!leaderboard[author]) {
+            message.reply("User <@" + author + "> isn't in the leaderboard");
+            return;
+        }
+
+        // Links ID to country
+        leaderboard[author].Country = country;
+
+        // Uploads the updated JSON Leaderboard
+        uploadJSON(interaction);
+        interaction.reply("Set <@" + author + ">'s country to " + country);
     }
 });
 
