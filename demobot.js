@@ -449,7 +449,7 @@ function uploadCSV(message, content) {
         });
 
     console.log("Uploaded CSV");
-    message.channel.send("Uploaded Leaderboard. You can find the live stats here: https://ubelhj.shinyapps.io/demobotR/");
+    message.channel.send("Uploaded Leaderboard. You can find the live stats here: https://demolition-leaderboard.netlify.app/");
 }
 
 // writes the CSV file leaderboard
