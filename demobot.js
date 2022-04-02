@@ -30,7 +30,9 @@ client.on("messageCreate", async message => {
     // Ignores messages from bots to stop abuse
     if (message.author.bot) return;
 
-    if (message.content.toLowerCase() === 'd: deploy' && message.author.id === client.application?.owner.id) {
+    let author = message.author.id;
+
+    if (message.content.toLowerCase() === 'd: deploy' && author === client.application?.owner.id) {
         const update = {
             name: 'update',
             description: 'Updates your score on the leaderboard',
@@ -212,7 +214,10 @@ client.on("messageCreate", async message => {
         return;
     }
 
-    let author = message.author.id;
+    if (message.content.toLowerCase().indexOf('d: h') == 0 && author === client.application?.owner.id) {
+        addHistory(message);
+        return;
+    }
 
     // Asks new users to use /update which handles new users
     if (!leaderboard[author]) {
@@ -232,8 +237,8 @@ client.on("messageCreate", async message => {
         return;
     }
 
-    let demos = matchResults[1];
-    let exterms = matchResults[2];
+    let demos = parseInt(matchResults[1]);
+    let exterms = parseInt(matchResults[2]);
 
     let name = leaderboard[author].Name;
 
@@ -566,6 +571,37 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
     });
     uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
     await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms");
+}
+
+async function addHistory(message) {
+    let attachments = (message.attachments);
+    let attachmentURL;
+    if (attachments && attachments.at(0)){
+        attachmentURL = attachments.at(0).url;
+    } else {
+        message.reply("Bad attachments!")
+        return;
+    }
+
+    let playerID;
+    if (message.mentions.users && message.mentions.users.at(0)) {
+        playerID = message.mentions.users.at(0).id
+    } else {
+        message.reply("Bad mention!")
+        return;
+    }
+
+    console.log( attachmentURL );
+    console.log( playerID );
+
+    let attachmentRequest = await fetch(attachmentURL);
+
+    let attachmentJSON = await attachmentRequest.json();
+
+    leaderboard[playerID].History = attachmentJSON;
+
+    uploadJSON(message);
+    message.reply("Set history for <@" + playerID + "> AKA " + leaderboard[playerID].Name);
 }
 
 // Writes and uploads CSV leaderboard file to Dropbox
