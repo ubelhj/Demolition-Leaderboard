@@ -156,6 +156,21 @@ client.on("messageCreate", async message => {
 
         const overrideCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(override);
 
+        const remove = {
+            name: 'remove',
+            description: '(mod only) Removes a user from the leaderboard',
+            options: [
+                {
+                    name: 'user',
+                    type: 'USER',
+                    description: 'User to remove (Can be Discord ID for banned users)',
+                    required: true,
+                },
+            ],
+        };
+
+        const removeCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(remove);
+
         console.log("Deployed slash commands");
         message.react("✅");
         return;
@@ -261,8 +276,6 @@ client.on('interactionCreate', async interaction => {
         const user = interaction.options.get('user').value;
         const level = interaction.options.get('level').value;
 
-        let author = interaction.user.id;
-
         if (!interaction.member.roles.cache.has(modRoleID)) {
             await interaction.reply({content: "Only mods can use this command", ephemeral: true});
             return;
@@ -282,8 +295,6 @@ client.on('interactionCreate', async interaction => {
         // Allows moderators to rename users
         const user = interaction.options.get('user').value;
         const name = interaction.options.get('name').value;
-
-        let author = interaction.user.id;
 
         if (!interaction.member.roles.cache.has(modRoleID)) {
             await interaction.reply({content: "Only mods can use this command", ephemeral: true});
@@ -317,8 +328,6 @@ client.on('interactionCreate', async interaction => {
         const demos = interaction.options.get('demolitions').value;
         const exterms = interaction.options.get('exterminations').value;
 
-        let author = interaction.user.id;
-
         if (!interaction.member.roles.cache.has(modRoleID)) {
             await interaction.reply({content: "Only mods can use this command", ephemeral: true});
             return;
@@ -328,6 +337,20 @@ client.on('interactionCreate', async interaction => {
         leaderboard[user].Exterminations = exterms;
         uploadJSON(interaction);
         interaction.reply("<@" + user + "> has " + demos + " demos and " + exterms + " exterms");
+    }
+
+    if (interaction.commandName === 'remove') {
+        // Allows moderators to rename users
+        const user = interaction.options.get('user').value;
+
+        if (!interaction.member.roles.cache.has(modRoleID)) {
+            await interaction.reply({content: "Only mods can use this command", ephemeral: true});
+            return;
+        }
+
+        delete leaderboard[user];
+        uploadJSON(interaction);
+        interaction.reply("<@" + user + "> has been removed from the leaderboard");
     }
 });
 
