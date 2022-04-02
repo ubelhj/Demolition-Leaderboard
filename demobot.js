@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
-const config = require("./config.json"); // For local Testing only
-//const config = process.env; // for heroku usage
+//const config = require("./config.json"); // For local Testing only
+const config = process.env; // for heroku usage
 
 // hold jsons
 let leaderboard;
@@ -165,11 +165,32 @@ client.on("messageCreate", async message => {
                     type: 'USER',
                     description: 'User to remove (Can be Discord ID for banned users)',
                     required: true,
-                },
+                }
             ],
         };
 
         const removeCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(remove);
+
+        const setUserCountry = {
+            name: 'setusercountry',
+            description: '(mod only) Sets a user\'s country',
+            options: [
+                {
+                    name: 'user',
+                    type: 'USER',
+                    description: 'User to change (Can be Discord ID for banned users)',
+                    required: true,
+                },
+                {
+                    name: 'country',
+                    type: 'STRING',
+                    description: 'New country',
+                    required: true,
+                }
+            ],
+        };
+
+        const setUserCountryCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(setUserCountry);
 
         console.log("Deployed slash commands");
         message.react("✅");
@@ -283,7 +304,7 @@ client.on('interactionCreate', async interaction => {
 
         // if the leaderboard doesn't include this discord ID, returns and warns user
         if (!leaderboard[user]) {
-            await interaction.reply({content:"User <@" + user + 
+            await interaction.reply({content:"<@" + user + 
                 "> isn't on the leaderboard. Have them use /update", ephemeral: true});
             return;
         }
@@ -310,7 +331,7 @@ client.on('interactionCreate', async interaction => {
 
         // If the user isn't in the leaderboard, warns user
         if (!leaderboard[author]) {
-            message.reply("User <@" + author + "> isn't in the leaderboard");
+            message.reply("<@" + author + "> isn't in the leaderboard");
             return;
         }
 
@@ -333,6 +354,11 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
+        if (!leaderboard[user]) {
+            interaction.reply("<@" + user + "> isn't in the leaderboard");
+            return;
+        }
+
         leaderboard[user].Demolitions = demos;
         leaderboard[user].Exterminations = exterms;
         uploadJSON(interaction);
@@ -348,9 +374,34 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
+        if (!leaderboard[user]) {
+            interaction.reply("<@" + user + "> isn't in the leaderboard");
+            return;
+        }
+
         delete leaderboard[user];
         uploadJSON(interaction);
         interaction.reply("<@" + user + "> has been removed from the leaderboard");
+    }
+
+    if (interaction.commandName === 'setusercountry') {
+        // Allows moderators to rename users
+        const user = interaction.options.get('user').value;
+        const country = interaction.options.get('country').value;
+
+        if (!interaction.member.roles.cache.has(modRoleID)) {
+            await interaction.reply({content: "Only mods can use this command", ephemeral: true});
+            return;
+        }
+
+        if (!leaderboard[user]) {
+            interaction.reply("<@" + user + "> isn't in the leaderboard");
+            return;
+        }
+
+        leaderboard[user].Country = country;
+        uploadJSON(interaction);
+        interaction.reply("Set <@" + user + ">'s country to " + country);
     }
 });
 
@@ -442,7 +493,7 @@ function authorize(id, level, message) {
 function nameUser(name, id, message) {
     // If the user isn't in the leaderboard, warns user
     if (!leaderboard[id]) {
-        message.reply("User <@" + id + "> isn't in the leaderboard");
+        message.reply("<@" + id + "> isn't in the leaderboard");
         return;
     }
 
