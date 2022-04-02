@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
-//const config = require("./config.json"); // For local Testing only
-const config = process.env; // for heroku usage
+const config = require("./config.json"); // For local Testing only
+//const config = process.env; // for heroku usage
 
 // hold jsons
 let leaderboard;
@@ -129,6 +129,33 @@ client.on("messageCreate", async message => {
 
         const countryCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(country);
 
+        const override = {
+            name: 'override',
+            description: '(mod only) Change a user\'s leaderboard score',
+            options: [
+                {
+                    name: 'user',
+                    type: 'USER',
+                    description: 'User to change',
+                    required: true,
+                },
+                {
+                    name: 'demolitions',
+                    type: 'INTEGER',
+                    description: 'The number of demolitions to change to',
+                    required: true,
+                },
+                {
+                    name: 'exterminations',
+                    type: 'INTEGER',
+                    description: 'The number of exterminations to change to',
+                    required: true,
+                }
+            ],
+        };
+
+        const overrideCommand = await client.guilds.cache.get('343166009286459402')?.commands.create(override);
+
         console.log("Deployed slash commands");
         message.react("✅");
         return;
@@ -212,23 +239,9 @@ client.on('interactionCreate', async interaction => {
                     "Authorized": 0,
                     "History": []
                   };
-            } 
+            }
 
-            // TODO temporarily disabled until reasonable solution is made for overrides
-            // if (interaction.member.roles.cache.has(modRoleID)) {
-            //     leaderboard[author].Demos = demos;
-            //     leaderboard[author].Exterminations = exterms;
-            //     leaderboard[author].name = name;
-            //     await interaction.reply("Overriden the score of user " + name);
-            //     return;
-            // }
-    
-            // TODO: also solve duplicate names
-            // if (leaderboard[name].Discord !== author) {
-            //     await interaction.reply("That name is already taken, please try another");
-            //     return;
-            // }
-
+            leaderboard[author].Name = name;
         } else {
             // if the leaderboard doesn't include this discord ID and no name was given, returns and warns user
             if (!leaderboard[author]) {
@@ -296,6 +309,25 @@ client.on('interactionCreate', async interaction => {
         // Uploads the updated JSON Leaderboard
         uploadJSON(interaction);
         interaction.reply("Set <@" + author + ">'s country to " + country);
+    }
+
+    if (interaction.commandName === 'override') {
+        // Allows moderators to rename users
+        const user = interaction.options.get('user').value;
+        const demos = interaction.options.get('demolitions').value;
+        const exterms = interaction.options.get('exterminations').value;
+
+        let author = interaction.user.id;
+
+        if (!interaction.member.roles.cache.has(modRoleID)) {
+            await interaction.reply({content: "Only mods can use this command", ephemeral: true});
+            return;
+        }
+
+        leaderboard[user].Demolitions = demos;
+        leaderboard[user].Exterminations = exterms;
+        uploadJSON(interaction);
+        interaction.reply("<@" + user + "> has " + demos + " demos and " + exterms + " exterms");
     }
 });
 
@@ -396,7 +428,7 @@ function nameUser(name, id, message) {
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.reply("Renamed <@" + id + " to " + name);
+    message.reply("Renamed <@" + id + "> to " + name);
 }
 
 async function addScores(authorized, demos, exterms, name, id, interaction) {
