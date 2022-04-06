@@ -243,9 +243,7 @@ client.on("messageCreate", async message => {
     let demos = parseInt(matchResults[1]);
     let exterms = parseInt(matchResults[2]);
 
-    let name = leaderboard[author].Name;
-
-    addScores(leaderboard[author].Authorized, demos, exterms, name, author, message);
+    addScores(demos, exterms, author, message);
 });
 
 client.on('interactionCreate', async interaction => {
@@ -294,9 +292,7 @@ client.on('interactionCreate', async interaction => {
             }
         }
 
-        name = leaderboard[author].Name
-
-        addScores(leaderboard[author].Authorized, demos, exterms, name, author, interaction);
+        addScores(demos, exterms, author, interaction);
     }
 
     if (interaction.commandName === 'authorize') {
@@ -426,7 +422,7 @@ function authorize(id, level, message) {
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.reply("Authorized " + leaderboard[id].Name);
+    message.reply("Authorized " + leaderboard[id].Name + " at level " + level);
     console.log("Authorized " + leaderboard[id].Name + " at level " + level);
 }
 
@@ -445,7 +441,9 @@ function nameUser(name, id, message) {
     message.reply("Renamed <@" + id + "> to " + name);
 }
 
-async function addScores(authorized, demos, exterms, name, id, interaction) {
+async function addScores(demos, exterms, id, interaction) {
+    let authorized = leaderboard[id].Authorized;
+
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === 0) {
@@ -470,12 +468,12 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
         // Checks against the top score
         // Only users authorized to update the top score are allowed to
         // Prevents abuse by authorized users
-        if (demos > highscores.leaderDemos) {
+        if (demos >= highscores.leaderDemos) {
             await interaction.reply("Congrats on the top place for Demos! " +
                 "Please send proof to an admin before we can verify your spot.");
             return;
         }
-        if (exterms > highscores.leaderExterm) {
+        if (exterms >= highscores.leaderExterm) {
             await interaction.reply("Congrats on the top place for Exterminations! " +
                 "Please send proof to an admin before we can verify your spot.");
             // Authorized users can update scores lower than the top spot
@@ -509,6 +507,7 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
     await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms");
 }
 
+// used to upload and override player's history from discord without manual file editing
 async function addHistory(message) {
     let attachments = (message.attachments);
     let attachmentURL;
