@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
-//const config = require("./config.json"); // For local Testing only
-const config = process.env; // for heroku usage
+const config = require("./config.json"); // For local Testing only
+//const config = process.env; // for heroku usage
 
 // hold jsons
 let leaderboard;
@@ -11,16 +11,19 @@ let highscores;
 //const mods = require("./moderators.json");
 const modRoleID = '431269016322048001';
 
-const fs = require('fs');
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
 let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 let failedDownload = false;
 
-
 // On startup downloads files from Dropbox to keep continuity across sessions
 client.on("ready", () => {
     download();
+});
+
+// Logs into Discord
+client.login(config.discordToken).catch(function (err) {
+    console.log(err);
 });
 
 // when the bot sees a message, begins running leaderboard update
@@ -410,75 +413,7 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-function uploadFiles(updatedLeaderboard, message) {
-    // If the leaderboard scores have been updated, uploads it
-    if (updatedLeaderboard) {
-        // Adds to running CSV, which works better with R Shiny site
-        // Has format: name, demolitions, exterminations
-        uploadCSV(message, updatedLeaderboard);
-    }
-    // the JSON Leaderboard has been updated, uploads that file
-    uploadJSON(message);
-}
 
-// downloads files from Dropbox to ensure continuity over multiple sessions
-function download() {
-    failedDownload = false;
-
-    // Downloads and saves dropbox files of leaderboards
-    // Allows cross-session saving of data and cloud access from other apps
-    // Stores data as json mapped to username
-    dbx.filesDownload({path: "/leaderboard.json"})
-        .then(function (data) {
-            fs.writeFile("./leaderboard.json", data.fileBinary, 'binary', function (err) {
-                if (err) {
-                    failedDownload = true;
-                    throw err;
-                }
-                leaderboard = require("./leaderboard.json");
-                console.log('File: ' + data.name + ' saved.');
-            });
-        })
-        .catch(function (err) {
-            failedDownload = true;
-            throw err;
-        });
-    // Stores data as easy to manipulate CSV
-    dbx.filesDownload({path: "/leaderboard.csv"})
-        .then(function (data) {
-            fs.writeFile("./leaderboard.csv", data.fileBinary, 'binary', function (err) {
-                if (err) {
-                    failedDownload = true;
-                    throw err;
-                }
-                console.log('File: ' + data.name + ' saved.');
-            });
-        })
-        .catch(function (err) {
-            failedDownload = true;
-            throw err;
-        });
-
-    dbx.filesDownload({path: "/highscores.json"})
-        .then(function (data) {
-            fs.writeFile("./highscores.json", data.fileBinary, 'binary', function (err) {
-                if (err) {
-                    failedDownload = true;
-                    throw err;
-                }
-                console.log('File: ' + data.name + ' saved.');
-                highscores = require("./highscores.json");
-            });
-        })
-        .catch(function (err) {
-            failedDownload = true;
-            throw err;
-        });
-
-    if (failedDownload) {
-        console.log("failed download");
-    }
-}
 
 function authorize(id, level, message) {
     // If the user isn't in the leaderboard, adds them
@@ -535,12 +470,12 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
         // Checks against the top score
         // Only users authorized to update the top score are allowed to
         // Prevents abuse by authorized users
-        if (demos, 10 > parseInt(highscores.leaderDemos, 10)) {
+        if (demos > highscores.leaderDemos) {
             await interaction.reply("Congrats on the top place for Demos! " +
                 "Please send proof to an admin before we can verify your spot.");
             return;
         }
-        if (exterms > parseInt(highscores.leaderExterm, 10)) {
+        if (exterms > highscores.leaderExterm) {
             await interaction.reply("Congrats on the top place for Exterminations! " +
                 "Please send proof to an admin before we can verify your spot.");
             // Authorized users can update scores lower than the top spot
@@ -569,7 +504,8 @@ async function addScores(authorized, demos, exterms, name, id, interaction) {
         "Exterminations": exterms,
         "Time": currTimeString
     });
-    uploadFiles("\n\"" + name + "\"," + demos + "," + exterms, interaction);
+
+    uploadJSON(interaction);
     await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms");
 }
 
@@ -604,46 +540,46 @@ async function addHistory(message) {
     message.reply("Set history for <@" + playerID + "> AKA " + leaderboard[playerID].Name);
 }
 
-// Writes and uploads CSV leaderboard file to Dropbox
-function uploadCSV(message, content) {
-    writeCSV(message, content)
-        .then(result => {
-            //console.log(result);
-            fs.readFile("leaderboard.csv", function (err, data) {
-                if (err) {
-                    message.channel.send("Failed to read and upload CSV leaderboard. Try again later");
-                    throw err;
-                }
-                // console.log(data.toString());
-                dbx.filesUpload({path: '/leaderboard.csv', contents: data, mode: "overwrite"})
-                    .catch(function (error) {
-                        message.channel.send("Dropbox error for CSV. Try same command again");
-                        console.error(error);
-                    })
-            });
+///////////////////////////////////////////
+///////// Dropbox API interactions ////////
+///////////////////////////////////////////
+
+// downloads files from Dropbox to ensure continuity over multiple sessions
+function download() {
+    failedDownload = false;
+
+    // Downloads and saves dropbox files of leaderboards
+    // Allows cross-session saving of data and cloud access from other apps
+    dbx.filesDownload({path: "/leaderboard.json"})
+        .then(function (data) {
+            leaderboard = JSON.parse(data.fileBinary);
+            console.log("Downloaded leaderboard.json");
+        })
+        .catch(function (err) {
+            failedDownload = true;
+            throw err;
         });
 
-    console.log("Uploaded CSV");
-    message.channel.send("Uploaded Leaderboard. You can find the live stats here: https://demolition-leaderboard.netlify.app/");
-}
-
-// writes the CSV file leaderboard
-// is async to ensure file is written before uploading
-async function writeCSV(message, content) {
-    fs.appendFileSync("leaderboard.csv", content, (err) => {
-        if (err) {
-            message.channel.send("Failed to write to leaderboard CSV. Try again later");
+    dbx.filesDownload({path: "/highscores.json"})
+        .then(function (data) {
+            highscores = JSON.parse(data.fileBinary);
+            console.log("Downloaded highscores.json");
+        })
+        .catch(function (err) {
+            failedDownload = true;
             throw err;
-        }
-        console.log('Appended CSV');
-    });
+        });
+
+    if (failedDownload) {
+        console.log("failed download");
+    }
 }
 
 // uploads the JSON file leaderboard to Dropbox
 function uploadJSON(message) {
     dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard, null, "\t"), mode: "overwrite"})
         .catch(function (error) {
-            message.channel.send("Dropbox error for JSON Leaderboard. Try same command again");
+            message.reply("Dropbox error for JSON Leaderboard. Try same command again");
             console.error(error);
         });
 
@@ -654,7 +590,7 @@ function uploadJSON(message) {
 function uploadHighScores(message) {
     dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores, null, "\t"), mode: "overwrite"})
         .catch(function (error) {
-            message.channel.send("Dropbox error for highscores. Try same command again");
+            message.reply("Dropbox error for highscores. Try same command again");
             console.error(error);
         });
 
@@ -662,10 +598,5 @@ function uploadHighScores(message) {
 }
 
 process.on('unhandledRejection', function(err) {
-    console.log(err);
-});
-
-// Logs into Discord
-client.login(config.discordToken).catch(function (err) {
     console.log(err);
 });
