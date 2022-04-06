@@ -205,18 +205,19 @@ client.on("messageCreate", async message => {
     // Ensures the message starts with the prefix "D:"
     if (message.content.toUpperCase().indexOf(config.prefix) !== 0) return;
 
-    // if the previous download failed, tries again
+    // If the previous download failed, tries again
     if (failedDownload) {
         download();
     }
 
-    // if two in a row have failed, gives up and warns user
+    // If two in a row have failed, gives up and warns user
     // Prevents overwriting of data with old data
     if (failedDownload) {
         await message.reply("Failed to connect to dropbox. Try again in a couple minutes");
         return;
     }
 
+    // Command for me to change a user's history
     if (message.content.toLowerCase().indexOf('d: h') == 0 && author === client.application?.owner.id) {
         addHistory(message);
         return;
@@ -228,15 +229,19 @@ client.on("messageCreate", async message => {
         return;
     }
 
+    ////////////
+    // Now checks scores for legacy D: E: users
+    // Probably removing eventually, but not at the momeny
+
+    // Checks for demo and exterms formatted as
+    // D: # E: #
     const regexVal = /[dD]:\s*(\d+)\s+[eE]:\s*(\d+)/;
 
     // regex ensures proper command usage
     let matchResults = message.content.match(regexVal);
 
     if (!matchResults) {
-        message.reply("Invalid format, please update your stats with the following format: " +
-            "D: # of demos E: # of exterminations\nEx: ```D: 2000 E: 1000```\n" +
-            "Or use /update");
+        message.reply("Invalid format, please update your stats with /update");
         return;
     }
 
@@ -409,8 +414,6 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-
-
 function authorize(id, level, message) {
     // If the user isn't in the leaderboard, adds them
     if (!leaderboard[id]) {
@@ -466,17 +469,16 @@ async function addScores(demos, exterms, id, interaction) {
 
     if (authorized === 1) {
         // Checks against the top score
-        // Only users authorized to update the top score are allowed to
-        // Prevents abuse by authorized users
+        // Only users authorized level 2 can update the top score
+        // Prevents abuse by authorized 1 users
         if (demos >= highscores.leaderDemos) {
             await interaction.reply("Congrats on the top place for Demos! " +
-                "Please send proof to an admin before we can verify your spot.");
+                "Please send proof of stats here before we can verify your spot.");
             return;
         }
         if (exterms >= highscores.leaderExterm) {
             await interaction.reply("Congrats on the top place for Exterminations! " +
-                "Please send proof to an admin before we can verify your spot.");
-            // Authorized users can update scores lower than the top spot
+                "Please send proof of stats here before we can verify your spot.");
             return;
         }
     }
@@ -486,12 +488,28 @@ async function addScores(demos, exterms, id, interaction) {
         return;
     }
 
+    // If user is authorized 2 (highest level), checks if the top score should be updated
     if (authorized === 2) {
-        highscores.leaderDemos = demos;
-        highscores.leaderExterm = exterms;
-        uploadHighScores();
+        let newScore = false; 
+        if (demos > highscores.leaderDemos) {
+            newScore = true;
+            highscores.leaderDemos = demos;
+        }
+
+        if (exterms > highscores.leaderExterm) {
+            newScore = true;
+            highscores.leaderExterm = demos;
+        }
+
+        if (newScore) {
+            uploadHighScores();
+        }
     }
 
+    // Checks for server role and nickname milestones
+    checkMilestones(demos, exterms, id, interaction);
+
+    // Adds score
     leaderboard[id].Demolitions = demos;
     leaderboard[id].Exterminations = exterms;
     let currTime = new Date();
@@ -504,7 +522,55 @@ async function addScores(demos, exterms, id, interaction) {
     });
 
     uploadJSON(interaction);
-    await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms");
+    await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms\n" +
+        "Check the leaderboard at https://demolition-leaderboard.netlify.app/");
+}
+
+// Checks if the player's passed a milestone for review
+// As this is informal, still lets the score go through
+function checkMilestones(demos, exterms, id, interaction) {
+    
+    let currentBombs = Math.floor(leaderboard[id].Demolitions / 10000);
+    let newBombs = Math.floor(demos / 10000);
+    if (currentBombs < newBombs) {
+        interaction.channel.send("Congrats on a " + newBombs + " bomb milestone <@" + id + 
+            ">! Please provide a screenshot of your stats. Rewards are explained here <#642467858248499212>");
+        // Returns early as it's already asking for a screenshot. Doesn't need request for exterms
+        return;
+    }
+
+    let currentExterms = leaderboard[id].Exterminations;
+
+    let reachedMilestone = false;
+    // all current milestones available. Descending order to congratulate on 
+    let milestones = [10000, 5000, 1000, 100];
+    for (let i in milestones) {
+        milestone = milestones[i];
+        reachedMilestone = extermMilestone(currentExterms, exterms, milestone, interaction);
+        // only ask user for highest new milestone
+        if (reachedMilestone) {
+            break;
+        }
+    }
+}
+
+// checks if a player just reached a new milestone for exterminations
+// Uses function as I assume more will be added over time
+function extermMilestone(oldExterms, newExterms, milestone, interaction) {
+    let id = interaction.user.id;
+    // ignore milestone if the player's already reached it
+    if (oldExterms >= milestone) {
+        return false;
+    }
+
+    // New milestone reached!
+    if (newExterms >= milestone) {
+        interaction.channel.send("Congrats on a " + milestone + "+ extermination milestone <@" + id + 
+            ">! Please provide a screenshot of your stats. Rewards are explained here <#642467858248499212>");
+        return true;
+    }
+
+    return false;
 }
 
 // used to upload and override player's history from discord without manual file editing
