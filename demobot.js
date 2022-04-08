@@ -546,7 +546,7 @@ function checkMilestones(demos, exterms, id, interaction) {
     let milestones = [10000, 5000, 1000, 100];
     for (let i in milestones) {
         milestone = milestones[i];
-        reachedMilestone = extermMilestone(currentExterms, exterms, milestone, interaction);
+        reachedMilestone = extermMilestone(currentExterms, exterms, milestone, id, interaction);
         // only ask user for highest new milestone
         if (reachedMilestone) {
             break;
@@ -556,8 +556,7 @@ function checkMilestones(demos, exterms, id, interaction) {
 
 // checks if a player just reached a new milestone for exterminations
 // Uses function as I assume more will be added over time
-function extermMilestone(oldExterms, newExterms, milestone, interaction) {
-    let id = interaction.user.id;
+function extermMilestone(oldExterms, newExterms, milestone, id, interaction) {
     // ignore milestone if the player's already reached it
     if (oldExterms >= milestone) {
         return false;
