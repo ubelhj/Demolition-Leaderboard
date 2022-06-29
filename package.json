@@ -15,9 +15,7 @@
     "discord.js": "^13.6.0",
     "dropbox": "^4.0.30",
     "es6-promise": "^4.2.8",
-    "isomorphic-fetch": "^3.0.0",
-    "jimp": "^0.13.0",
-    "json2csv": "^4.5.4"
+    "isomorphic-fetch": "^3.0.0"
   },
   "engines": {
     "node": ">=16.6"
