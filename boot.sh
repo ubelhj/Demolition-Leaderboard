@@ -1,0 +1,1 @@
+npm run start 2>&1| tee log.txt &
