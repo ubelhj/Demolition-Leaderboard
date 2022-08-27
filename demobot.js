@@ -16,8 +16,17 @@ const Dropbox = require('dropbox').Dropbox;
 let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 let failedDownload = false;
 
+console.logCopy = console.log.bind(console);
+
+console.log = function(data)
+{
+    var timestamp = '[' + new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }) + '] ';
+    this.logCopy(timestamp, data);
+};
+
 // On startup downloads files from Dropbox to keep continuity across sessions
 client.on("ready", () => {
+    console.log("Booting")
     download();
 });
 
