@@ -1,7 +1,8 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
-const config = require("./config.json"); // For local Testing only
-//const config = process.env; // for heroku usage
+const config = require("./config.json"); 
+
+process.title = "demobot"
 
 // hold jsons
 let leaderboard;
@@ -240,7 +241,7 @@ client.on("messageCreate", async message => {
 
     ////////////
     // Now checks scores for legacy D: E: users
-    // Probably removing eventually, but not at the momeny
+    // Probably removing eventually, but not at the moment
 
     // Checks for demo and exterms formatted as
     // D: # E: #
@@ -461,17 +462,19 @@ async function addScores(demos, exterms, id, interaction) {
     if (authorized === 0) {
         if (demos > 15000) {
             await interaction.reply("Congratulations, you have over 15k Demolitions! " +
-                "New submissions with high scores require manual review from an admin. " +
-                "Please send a screenshot of your stats to this channel. If you have any " +
-                "questions, please ask here");
+                "New submissions with high scores require manual review. " +
+                "Please send a screenshot of your stats to this channel. " +
+                "Mods usually notice and approve updates within a few hours, " +
+                "but occasionally it takes a few days. Please be patient");
             return;
         }
 
         if (exterms > 500) {
             await interaction.reply("Congratulations, you have over 500 Exterminations! " +
-                "New submissions with high scores require manual review from an admin. " +
-                "Please send a screenshot of your stats to this channel. If you have any " +
-                "questions, please ask here");
+                "New submissions with high scores require manual review. " +
+                "Please send a screenshot of your stats to this channel. " +
+                "Mods usually notice and approve updates within a few hours, " +
+                "but occasionally it takes a few days. Please be patient");
             return;
         }
     }

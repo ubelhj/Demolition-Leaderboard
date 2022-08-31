@@ -2,11 +2,10 @@
   "name": "demoBot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "demobot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node demobot.js",
-    "worker": "node demobot.js"
+    "stop": "killall -SIGINT demobot"
   },
   "keywords": [],
   "author": "",
