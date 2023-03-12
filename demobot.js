@@ -454,10 +454,18 @@ function nameUser(name, id, message) {
     message.reply("Renamed <@" + id + "> to " + name);
 }
 
+/**
+ * Processes any messages to send about milestones, and checks for authorization, then uploads scores
+ * 
+ * @param {Number} demos 
+ * @param {Number} exterms 
+ * @param {Discord.Snowflake} id 
+ * @param {Discord.Interaction} interaction 
+ * @returns 
+ */
 async function addScores(demos, exterms, id, interaction) {
     let player = getPlayer(id);
     let authorized = player.AUTHORIZED;
-
 
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
@@ -521,7 +529,7 @@ async function addScores(demos, exterms, id, interaction) {
     }
 
     // Checks for server role and nickname milestones
-    checkMilestones(demos, exterms, id, interaction);
+    checkMilestones(player, demos, exterms, interaction);
 
     // Adds score
     leaderboard[id].Demolitions = demos;
@@ -540,11 +548,18 @@ async function addScores(demos, exterms, id, interaction) {
         "Check the leaderboard at https://demolition-leaderboard.netlify.app/");
 }
 
-// Checks if the player's passed a milestone for review
-// As this is informal, still lets the score go through
-function checkMilestones(demos, exterms, id, interaction) {
+/**
+ * Checks if the player's passed a milestone for review.
+ * As this is informal, still lets the score go through
+ * @param {DemobotTypes.Player} player 
+ * @param {Number} demos 
+ * @param {Number} exterms 
+ * @param {Discord.Snowflake} id 
+ * @param {Discord.Interaction} interaction 
+ */
+function checkMilestones(player, demos, exterms, id, interaction) {
     
-    let currentBombs = Math.floor(leaderboard[id].Demolitions / 10000);
+    let currentBombs = Math.floor(player.DEMOLITIONS / 10000);
     let newBombs = Math.floor(demos / 10000);
     if (currentBombs < newBombs) {
         interaction.channel.send("Congrats on a " + newBombs + " bomb milestone <@" + id + 
@@ -553,7 +568,7 @@ function checkMilestones(demos, exterms, id, interaction) {
         return;
     }
 
-    let currentExterms = leaderboard[id].Exterminations;
+    let currentExterms = player.EXTERMINATIONS;
 
     let reachedMilestone = false;
     // all current milestones available. Descending order to congratulate on 
@@ -568,8 +583,15 @@ function checkMilestones(demos, exterms, id, interaction) {
     }
 }
 
-// checks if a player just reached a new milestone for exterminations
-// Uses function as I assume more will be added over time
+/**
+ * Checks if a player just reached a new milestone for exterminations.
+ * @param {Number} oldExterms 
+ * @param {Number} newExterms 
+ * @param {Number} milestone 
+ * @param {Discord.Snowflake} id 
+ * @param {Discord.Interaction} interaction 
+ * @returns {Boolean} Whether a milestone was reached
+ */
 function extermMilestone(oldExterms, newExterms, milestone, id, interaction) {
     // ignore milestone if the player's already reached it
     if (oldExterms >= milestone) {
@@ -675,22 +697,28 @@ function uploadHighScores(message) {
     console.log("Uploaded highscores");
 }
 
-// type Player =  {
-//     DISCORD_ID: string;
-//     NAME: string;
-//     DEMOLITIONS: int;
-//     EXTERMINATIONS: int;
-//     COUNTRY: string;
-//     LAST_UPDATE: string;
-//     AUTHORIZED: int;
-// }
-
 /**
- * 
+ * Gets a single player's row in the Players table
  * @param {string} discord_id The id of player to search for
  * @returns {DemobotTypes.Player} Json object of row in PLAYERS table in db
  */
 async function getPlayer(discord_id) {
+    return dbSelect(
+        `SELECT *
+        FROM players
+        WHERE discord_id = :discord_id`,
+        [discord_id]
+    );
+}
+
+
+/**
+ * Runs any select query on the database
+ * @param {String} query SQL query to run
+ * @param {any[]} values Variables to bind to the sql query
+ * @returns {Object} A single row from the database
+ */
+async function dbSelect(query, values) {
     let connection;
     let retval;
 
@@ -701,13 +729,9 @@ async function getPlayer(discord_id) {
         connectString : config.connectString,
         });
 
-        console.log(discord_id);
-
         const result = await connection.execute(
-            `SELECT *
-            FROM players
-            WHERE discord_id = :discord_id`,
-            [discord_id],
+            query,
+            values,
             {
                 'outFormat': oracledb.OBJECT,
             }
@@ -737,8 +761,6 @@ async function getPlayer(discord_id) {
         }
     }
 }
-
-getPlayer('181981061763301377');
 
 process.on('unhandledRejection', function(err) {
     console.log(err);
