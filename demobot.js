@@ -455,7 +455,9 @@ function nameUser(name, id, message) {
 }
 
 async function addScores(demos, exterms, id, interaction) {
-    let authorized = leaderboard[id].Authorized;
+    let player = getPlayer(id);
+    let authorized = player.AUTHORIZED;
+
 
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
@@ -673,8 +675,24 @@ function uploadHighScores(message) {
     console.log("Uploaded highscores");
 }
 
+// type Player =  {
+//     DISCORD_ID: string;
+//     NAME: string;
+//     DEMOLITIONS: int;
+//     EXTERMINATIONS: int;
+//     COUNTRY: string;
+//     LAST_UPDATE: string;
+//     AUTHORIZED: int;
+// }
+
+/**
+ * 
+ * @param {string} discord_id The id of player to search for
+ * @returns {DemobotTypes.Player} Json object of row in PLAYERS table in db
+ */
 async function getPlayer(discord_id) {
     let connection;
+    let retval;
 
     try {
         connection = await oracledb.getConnection( {
@@ -683,28 +701,44 @@ async function getPlayer(discord_id) {
         connectString : config.connectString,
         });
 
+        console.log(discord_id);
+
         const result = await connection.execute(
-        `SELECT *
-        FROM players
-        WHERE discord_id = :id`,
-        [discord_id],  // bind value for :id
+            `SELECT *
+            FROM players
+            WHERE discord_id = :discord_id`,
+            [discord_id],
+            {
+                'outFormat': oracledb.OBJECT,
+            }
         );
+
         console.log(result.rows);
 
+        if (result.rows && result.rows.length > 0) {
+            retval = result.rows[0];
+        } else {
+            retval = null;
+        }
+
+        console.log(retval);
     } catch (err) {
         console.error(err);
     } finally {
         if (connection) {
-        try {
-            await connection.close();
-        } catch (err) {
-            console.error(err);
-        }
+            try {
+                await connection.close();
+
+
+                return retval;
+            } catch (err) {
+                console.error(err);
+            }
         }
     }
 }
 
-getPlayer(181981061763301377);
+getPlayer('181981061763301377');
 
 process.on('unhandledRejection', function(err) {
     console.log(err);
