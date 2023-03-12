@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
 const config = require("./config.json"); 
+const oracledb = require('oracledb');
 
 process.title = "demobot"
 
@@ -8,8 +9,7 @@ process.title = "demobot"
 let leaderboard;
 let highscores;
 
-// holds discord IDs of authorized moderators
-//const mods = require("./moderators.json");
+// Role id for authorized moderators
 const modRoleID = '431269016322048001';
 
 const fetch = require('isomorphic-fetch');
@@ -17,8 +17,8 @@ const Dropbox = require('dropbox').Dropbox;
 let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
 let failedDownload = false;
 
+// Adds timestamps to console log
 console.logCopy = console.log.bind(console);
-
 console.log = function(data)
 {
     var timestamp = '[' + new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }) + '] ';
@@ -672,6 +672,39 @@ function uploadHighScores(message) {
 
     console.log("Uploaded highscores");
 }
+
+async function getPlayer(discord_id) {
+    let connection;
+
+    try {
+        connection = await oracledb.getConnection( {
+        user          : "ADMIN",
+        password      : config.oraclePassword,
+        connectString : config.connectString,
+        });
+
+        const result = await connection.execute(
+        `SELECT *
+        FROM players
+        WHERE discord_id = :id`,
+        [discord_id],  // bind value for :id
+        );
+        console.log(result.rows);
+
+    } catch (err) {
+        console.error(err);
+    } finally {
+        if (connection) {
+        try {
+            await connection.close();
+        } catch (err) {
+            console.error(err);
+        }
+        }
+    }
+}
+
+getPlayer(181981061763301377);
 
 process.on('unhandledRejection', function(err) {
     console.log(err);
