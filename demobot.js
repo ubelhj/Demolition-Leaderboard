@@ -470,6 +470,8 @@ function nameUser(interaction, name, id) {
 async function addScores(interaction, player, demos, exterms) {
     let authorized = player.AUTHORIZED;
 
+    // TODO function get high scores
+
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
     if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_NONE) {
@@ -518,6 +520,7 @@ async function addScores(interaction, player, demos, exterms) {
         let newScore = false; 
         if (demos > highscores.leaderDemos) {
             newScore = true;
+            // TODO function to update high scores
             highscores.leaderDemos = demos;
         }
 
@@ -525,28 +528,32 @@ async function addScores(interaction, player, demos, exterms) {
             newScore = true;
             highscores.leaderExterm = demos;
         }
-
-        if (newScore) {
-            uploadHighScores();
-        }
     }
 
     // Checks for server role and nickname milestones
     checkMilestones(interaction, player, demos, exterms);
 
-    // Adds score
-    leaderboard[id].Demolitions = demos;
-    leaderboard[id].Exterminations = exterms;
     let currTime = new Date();
     let currTimeString = currTime.toISOString();
-    leaderboard[id].LastUpdate = currTimeString;
-    leaderboard[id].History.push({
-        "Demolitions": demos,
-        "Exterminations": exterms,
-        "Time": currTimeString
-    });
 
-    uploadJSON(interaction);
+    // Adds score
+    Database.updatePlayer(
+        player.DISCORD_ID,
+        {
+            "DEMOLITIONS": demos,
+            "EXTERMINATIONS": exterms,
+            "LAST_UPDATE": currTimeString,
+
+        }
+    )
+
+    // TODO Insert function for history
+    // leaderboard[id].History.push({
+    //     "Demolitions": demos,
+    //     "Exterminations": exterms,
+    //     "Time": currTimeString
+    // });
+
     await interaction.reply("<@" + player.DISCORD_ID + "> has " + demos + " demos and " + exterms + " exterms\n" +
         "Check the leaderboard at https://demolition-leaderboard.netlify.app/");
 }
@@ -574,8 +581,8 @@ function checkMilestones(interaction, player, demos, exterms) {
     // all current milestones available. Descending order to congratulate on 
     let milestones = [10000, 5000, 1000, 100];
     for (let i in milestones) {
-        milestone = milestones[i];
-        reachedMilestone = extermMilestone(interaction, player, exterms, milestone);
+        let milestone = milestones[i];
+        reachedMilestone = checkExtermMilestone(interaction, player, exterms, milestone);
         // only ask user for highest new milestone
         if (reachedMilestone) {
             break;
@@ -591,7 +598,7 @@ function checkMilestones(interaction, player, demos, exterms) {
  * @param {Number} milestone 
  * @returns {Boolean} Whether a milestone was reached
  */
-function extermMilestone(interaction, player, newExterms, milestone) {
+function checkExtermMilestone(interaction, player, newExterms, milestone) {
     // ignore milestone if the player's already reached it
     if (oldExterms >= milestone) {
         return false;
