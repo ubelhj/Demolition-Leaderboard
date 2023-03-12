@@ -3,6 +3,8 @@ const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
 const config = require("./config.json"); 
 const oracledb = require('oracledb');
 
+const Database = require("./database");
+
 process.title = "demobot"
 
 // hold jsons
@@ -228,13 +230,16 @@ client.on("messageCreate", async message => {
     }
 
     // Command for me to change a user's history
-    if (message.content.toLowerCase().indexOf('d: h') == 0 && author === client.application?.owner.id) {
-        addHistory(message);
-        return;
-    }
+    // Disabled for the moment as I've changed the format of history
+    // if (message.content.toLowerCase().indexOf('d: h') == 0 && author === client.application?.owner.id) {
+    //     addHistory(message);
+    //     return;
+    // }
+
+    let player = Database.getPlayer(author);
 
     // Asks new users to use /update which handles new users
-    if (!leaderboard[author]) {
+    if (!player) {
         await message.reply("New accounts must set up their name using /update");
         return;
     }
@@ -258,56 +263,52 @@ client.on("messageCreate", async message => {
     let demos = parseInt(matchResults[1]);
     let exterms = parseInt(matchResults[2]);
 
-    addScores(demos, exterms, author, message);
+    addScores(message, player, demos, exterms);
 });
 
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     // if the previous download failed, tries again
-    if (failedDownload) {
-        download();
-    }
+    // if (failedDownload) {
+    //     download();
+    // }
 
     // if two in a row have failed, gives up and warns user
     // Prevents overwriting of data with old data
-    if (failedDownload) {
-        await interaction.reply("Failed to connect to dropbox. Try again in a couple minutes");
-        return;
-    }
+    // if (failedDownload) {
+    //     await interaction.reply("Failed to connect to dropbox. Try again in a couple minutes");
+    //     return;
+    // }
 
     if (interaction.commandName === 'update') { 
         const demos = interaction.options.get('demolitions').value;
         const exterms = interaction.options.get('exterminations').value;
-        let name = interaction.options.get('name')?.value;
+        const name = interaction.options.get('name')?.value;
 
-        let author = interaction.user.id;
+        const author = interaction.user.id;
 
-        // if there is a name supplied
+        const player = Database.getPlayer(interaction.user.id);
+
         if (name) {
-            // If the leaderboard doesn't include the author, adds them
-            // otherwise ignores name field
-            if (!leaderboard[author]) {
-                leaderboard[author] = {
-                    "Name": name,
-                    "Demolitions": 0,
-                    "Exterminations": 0,
-                    "LastUpdate": "2015-07-07T00:00:00.000",
-                    "Authorized": 0,
-                    "History": []
-                  };
+           
+            if (!player) {
+                // If the leaderboard doesn't include the author, adds them
+                // TODO INSERT PLAYER HERE
+            } else {
+                // Leaderboard does include the author, update their name
+                // TODO UPDATE PLAYER HERE
+                leaderboard[author].Name = name;
             }
-
-            leaderboard[author].Name = name;
         } else {
             // if the leaderboard doesn't include this discord ID and no name was given, returns and warns user
-            if (!leaderboard[author]) {
+            if (!player) {
                 await interaction.reply("New account has no name, try again including a name");
                 return;
             }
         }
 
-        addScores(demos, exterms, author, interaction);
+        addScores(interaction, player, demos, exterms);
     }
 
     if (interaction.commandName === 'authorize') {
@@ -321,14 +322,17 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
+        const player = Database.getPlayer(user);
+
+        // TODO reconsider if authorize should create the user
         // if the leaderboard doesn't include this discord ID, returns and warns user
-        if (!leaderboard[user]) {
+        if (!player) {
             await interaction.reply({content:"<@" + user + 
                 "> isn't on the leaderboard. Have them use /update", ephemeral: true});
             return;
         }
 
-        authorize(user, level, interaction);
+        authorize(interaction, player, level);
     }
 
     if (interaction.commandName === 'name') {
@@ -341,16 +345,18 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        nameUser(name, user, interaction);
+        nameUser(interaction, name, user);
     }
 
     if (interaction.commandName === 'country') {
         const country = interaction.options.get('country').value;
         let author = interaction.user.id;
 
+        const player = Database.getPlayer(author);
+
         // If the user isn't in the leaderboard, warns user
-        if (!leaderboard[author]) {
-            message.reply("<@" + author + "> isn't in the leaderboard");
+        if (!player) {
+            message.reply("<@" + author + "> you aren't on the leaderboard! Make sure to /update!");
             return;
         }
 
@@ -373,7 +379,9 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        if (!leaderboard[user]) {
+        const player = Database.getPlayer(user);
+
+        if (!player) {
             interaction.reply("<@" + user + "> isn't in the leaderboard");
             return;
         }
@@ -393,7 +401,9 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        if (!leaderboard[user]) {
+        const player = Database.getPlayer(user);
+
+        if (!player) {
             interaction.reply("<@" + user + "> isn't in the leaderboard");
             return;
         }
@@ -413,7 +423,9 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        if (!leaderboard[user]) {
+        const player = Database.getPlayer(user);
+
+        if (!player) {
             interaction.reply("<@" + user + "> isn't in the leaderboard");
             return;
         }
@@ -424,25 +436,35 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-function authorize(id, level, message) {
-    // If the user isn't in the leaderboard, adds them
-    if (!leaderboard[id]) {
-        console.log("Error updating invalid user " + id);
-        return;
-    }
-
+/**
+ * Authorizes player at a given level
+ * 
+ * @param {Discord.Interaction} interaction 
+ * @param {DemobotTypes.Player} player 
+ * @param {DemobotTypes.AuthorizationLevel} level 
+ */
+function authorize(interaction, player, level) {
     leaderboard[id].Authorized = level;
 
     // Uploads the updated JSON Leaderboard
-    uploadJSON(message);
-    message.reply("Authorized " + leaderboard[id].Name + " at level " + level);
-    console.log("Authorized " + leaderboard[id].Name + " at level " + level);
+    uploadJSON(interaction);
+    interaction.reply("Authorized " + player.NAME + " at level " + level);
+    console.log("Authorized " + player.NAME + " at level " + level);
 }
 
-function nameUser(name, id, message) {
+/**
+ * Changes a user's name on the leaderboard
+ * 
+ * @param {Discord.Interaction} interaction 
+ * @param {String} name 
+ * @param {Discord.Snowflake} id 
+ */
+function nameUser(interaction, name, id) {
+    var player = Database.getPlayer(id);
+
     // If the user isn't in the leaderboard, warns user
-    if (!leaderboard[id]) {
-        message.reply("<@" + id + "> isn't in the leaderboard");
+    if (!player) {
+        interaction.reply("<@" + id + "> isn't in the leaderboard");
         return;
     }
 
@@ -450,26 +472,24 @@ function nameUser(name, id, message) {
     leaderboard[id].Name = name;
 
     // Uploads the updated JSON Leaderboard
-    uploadJSON(message);
-    message.reply("Renamed <@" + id + "> to " + name);
+    uploadJSON(interaction);
+    interaction.reply("Renamed <@" + id + "> to " + name);
 }
 
 /**
  * Processes any messages to send about milestones, and checks for authorization, then uploads scores
  * 
+ * @param {Discord.Interaction} interaction 
+ * @param {DemobotTypes.Player} player
  * @param {Number} demos 
  * @param {Number} exterms 
- * @param {Discord.Snowflake} id 
- * @param {Discord.Interaction} interaction 
- * @returns 
  */
-async function addScores(demos, exterms, id, interaction) {
-    let player = getPlayer(id);
+async function addScores(interaction, player, demos, exterms) {
     let authorized = player.AUTHORIZED;
 
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
-    if (authorized === 0) {
+    if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_NONE) {
         if (demos > 15000) {
             await interaction.reply("Congratulations, you have over 15k Demolitions! " +
                 "New submissions with high scores require manual review. " +
@@ -489,7 +509,7 @@ async function addScores(demos, exterms, id, interaction) {
         }
     }
 
-    if (authorized === 1) {
+    if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_OVER_15K) {
         // Checks against the top score
         // Only users authorized level 2 can update the top score
         // Prevents abuse by authorized 1 users
@@ -511,7 +531,7 @@ async function addScores(demos, exterms, id, interaction) {
     }
 
     // If user is authorized 2 (highest level), checks if the top score should be updated
-    if (authorized === 2) {
+    if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_TOP) {
         let newScore = false; 
         if (demos > highscores.leaderDemos) {
             newScore = true;
@@ -529,7 +549,7 @@ async function addScores(demos, exterms, id, interaction) {
     }
 
     // Checks for server role and nickname milestones
-    checkMilestones(player, demos, exterms, interaction);
+    checkMilestones(interaction, player, demos, exterms);
 
     // Adds score
     leaderboard[id].Demolitions = demos;
@@ -544,38 +564,35 @@ async function addScores(demos, exterms, id, interaction) {
     });
 
     uploadJSON(interaction);
-    await interaction.reply("<@" + id + "> has " + demos + " demos and " + exterms + " exterms\n" +
+    await interaction.reply("<@" + player.DISCORD_ID + "> has " + demos + " demos and " + exterms + " exterms\n" +
         "Check the leaderboard at https://demolition-leaderboard.netlify.app/");
 }
 
 /**
  * Checks if the player's passed a milestone for review.
  * As this is informal, still lets the score go through
+ * 
+ * @param {Discord.Interaction} interaction 
  * @param {DemobotTypes.Player} player 
  * @param {Number} demos 
  * @param {Number} exterms 
- * @param {Discord.Snowflake} id 
- * @param {Discord.Interaction} interaction 
  */
-function checkMilestones(player, demos, exterms, id, interaction) {
-    
+function checkMilestones(interaction, player, demos, exterms) {
     let currentBombs = Math.floor(player.DEMOLITIONS / 10000);
     let newBombs = Math.floor(demos / 10000);
     if (currentBombs < newBombs) {
-        interaction.channel.send("Congrats on a " + newBombs + " bomb milestone <@" + id + 
+        interaction.channel.send("Congrats on a " + newBombs + " bomb milestone <@" + player.DISCORD_ID + 
             ">! Please provide a screenshot of your stats. Rewards are explained here <#642467858248499212>");
         // Returns early as it's already asking for a screenshot. Doesn't need request for exterms
         return;
     }
-
-    let currentExterms = player.EXTERMINATIONS;
 
     let reachedMilestone = false;
     // all current milestones available. Descending order to congratulate on 
     let milestones = [10000, 5000, 1000, 100];
     for (let i in milestones) {
         milestone = milestones[i];
-        reachedMilestone = extermMilestone(currentExterms, exterms, milestone, id, interaction);
+        reachedMilestone = extermMilestone(interaction, player, exterms, milestone);
         // only ask user for highest new milestone
         if (reachedMilestone) {
             break;
@@ -585,14 +602,13 @@ function checkMilestones(player, demos, exterms, id, interaction) {
 
 /**
  * Checks if a player just reached a new milestone for exterminations.
- * @param {Number} oldExterms 
+ * @param {Discord.Interaction} interaction 
+ * @param {DemobotTypes.Player} player 
  * @param {Number} newExterms 
  * @param {Number} milestone 
- * @param {Discord.Snowflake} id 
- * @param {Discord.Interaction} interaction 
  * @returns {Boolean} Whether a milestone was reached
  */
-function extermMilestone(oldExterms, newExterms, milestone, id, interaction) {
+function extermMilestone(interaction, player, newExterms, milestone) {
     // ignore milestone if the player's already reached it
     if (oldExterms >= milestone) {
         return false;
@@ -600,7 +616,7 @@ function extermMilestone(oldExterms, newExterms, milestone, id, interaction) {
 
     // New milestone reached!
     if (newExterms >= milestone) {
-        interaction.channel.send("Congrats on a " + milestone + "+ extermination milestone <@" + id + 
+        interaction.channel.send("Congrats on a " + milestone + "+ extermination milestone <@" + player.DISCORD_ID + 
             ">! Please provide a screenshot of your stats. Rewards are explained here <#642467858248499212>");
         return true;
     }
@@ -609,158 +625,93 @@ function extermMilestone(oldExterms, newExterms, milestone, id, interaction) {
 }
 
 // used to upload and override player's history from discord without manual file editing
-async function addHistory(message) {
-    let attachments = (message.attachments);
-    let attachmentURL;
-    if (attachments && attachments.at(0)){
-        attachmentURL = attachments.at(0).url;
-    } else {
-        message.reply("Bad attachments!")
-        return;
-    }
+// async function addHistory(message) {
+//     let attachments = (message.attachments);
+//     let attachmentURL;
+//     if (attachments && attachments.at(0)){
+//         attachmentURL = attachments.at(0).url;
+//     } else {
+//         message.reply("Bad attachments!")
+//         return;
+//     }
 
-    let playerID;
-    if (message.mentions.users && message.mentions.users.at(0)) {
-        playerID = message.mentions.users.at(0).id
-    } else {
-        message.reply("Bad mention!")
-        return;
-    }
+//     let playerID;
+//     if (message.mentions.users && message.mentions.users.at(0)) {
+//         playerID = message.mentions.users.at(0).id
+//     } else {
+//         message.reply("Bad mention!")
+//         return;
+//     }
 
-    console.log( attachmentURL );
-    console.log( playerID );
+//     console.log( attachmentURL );
+//     console.log( playerID );
 
-    let attachmentRequest = await fetch(attachmentURL);
+//     let attachmentRequest = await fetch(attachmentURL);
 
-    let attachmentJSON = await attachmentRequest.json();
+//     let attachmentJSON = await attachmentRequest.json();
 
-    leaderboard[playerID].History = attachmentJSON;
+//     leaderboard[playerID].History = attachmentJSON;
 
-    uploadJSON(message);
-    message.reply("Set history for <@" + playerID + "> AKA " + leaderboard[playerID].Name);
-}
+//     uploadJSON(message);
+//     message.reply("Set history for <@" + playerID + "> AKA " + leaderboard[playerID].Name);
+// }
 
 ///////////////////////////////////////////
 ///////// Dropbox API interactions ////////
 ///////////////////////////////////////////
 
 // downloads files from Dropbox to ensure continuity over multiple sessions
-function download() {
-    failedDownload = false;
+// function download() {
+//     failedDownload = false;
 
-    // Downloads and saves dropbox files of leaderboards
-    // Allows cross-session saving of data and cloud access from other apps
-    dbx.filesDownload({path: "/leaderboard.json"})
-        .then(function (data) {
-            leaderboard = JSON.parse(data.fileBinary);
-            console.log("Downloaded leaderboard.json");
-        })
-        .catch(function (err) {
-            failedDownload = true;
-            throw err;
-        });
+//     // Downloads and saves dropbox files of leaderboards
+//     // Allows cross-session saving of data and cloud access from other apps
+//     dbx.filesDownload({path: "/leaderboard.json"})
+//         .then(function (data) {
+//             leaderboard = JSON.parse(data.fileBinary);
+//             console.log("Downloaded leaderboard.json");
+//         })
+//         .catch(function (err) {
+//             failedDownload = true;
+//             throw err;
+//         });
 
-    dbx.filesDownload({path: "/highscores.json"})
-        .then(function (data) {
-            highscores = JSON.parse(data.fileBinary);
-            console.log("Downloaded highscores.json");
-        })
-        .catch(function (err) {
-            failedDownload = true;
-            throw err;
-        });
+//     dbx.filesDownload({path: "/highscores.json"})
+//         .then(function (data) {
+//             highscores = JSON.parse(data.fileBinary);
+//             console.log("Downloaded highscores.json");
+//         })
+//         .catch(function (err) {
+//             failedDownload = true;
+//             throw err;
+//         });
 
-    if (failedDownload) {
-        console.log("failed download");
-    }
-}
+//     if (failedDownload) {
+//         console.log("failed download");
+//     }
+// }
 
-// uploads the JSON file leaderboard to Dropbox
-function uploadJSON(message) {
-    dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard, null, "\t"), mode: "overwrite"})
-        .catch(function (error) {
-            message.reply("Dropbox error for JSON Leaderboard. Try same command again");
-            console.error(error);
-        });
+// // uploads the JSON file leaderboard to Dropbox
+// function uploadJSON(message) {
+//     dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard, null, "\t"), mode: "overwrite"})
+//         .catch(function (error) {
+//             message.reply("Dropbox error for JSON Leaderboard. Try same command again");
+//             console.error(error);
+//         });
 
-    console.log("Uploaded leaderboard JSON");
-}
+//     console.log("Uploaded leaderboard JSON");
+// }
 
-// uploads the JSON file high scores to Dropbox
-function uploadHighScores(message) {
-    dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores, null, "\t"), mode: "overwrite"})
-        .catch(function (error) {
-            message.reply("Dropbox error for highscores. Try same command again");
-            console.error(error);
-        });
+// // uploads the JSON file high scores to Dropbox
+// function uploadHighScores(message) {
+//     dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores, null, "\t"), mode: "overwrite"})
+//         .catch(function (error) {
+//             message.reply("Dropbox error for highscores. Try same command again");
+//             console.error(error);
+//         });
 
-    console.log("Uploaded highscores");
-}
-
-/**
- * Gets a single player's row in the Players table
- * @param {string} discord_id The id of player to search for
- * @returns {DemobotTypes.Player} Json object of row in PLAYERS table in db
- */
-async function getPlayer(discord_id) {
-    return dbSelect(
-        `SELECT *
-        FROM players
-        WHERE discord_id = :discord_id`,
-        [discord_id]
-    );
-}
-
-
-/**
- * Runs any select query on the database
- * @param {String} query SQL query to run
- * @param {any[]} values Variables to bind to the sql query
- * @returns {Object} A single row from the database
- */
-async function dbSelect(query, values) {
-    let connection;
-    let retval;
-
-    try {
-        connection = await oracledb.getConnection( {
-        user          : "ADMIN",
-        password      : config.oraclePassword,
-        connectString : config.connectString,
-        });
-
-        const result = await connection.execute(
-            query,
-            values,
-            {
-                'outFormat': oracledb.OBJECT,
-            }
-        );
-
-        console.log(result.rows);
-
-        if (result.rows && result.rows.length > 0) {
-            retval = result.rows[0];
-        } else {
-            retval = null;
-        }
-
-        console.log(retval);
-    } catch (err) {
-        console.error(err);
-    } finally {
-        if (connection) {
-            try {
-                await connection.close();
-
-
-                return retval;
-            } catch (err) {
-                console.error(err);
-            }
-        }
-    }
-}
+//     console.log("Uploaded highscores");
+// }
 
 process.on('unhandledRejection', function(err) {
     console.log(err);
