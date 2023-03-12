@@ -8,7 +8,7 @@ class Database {
      * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
      */
     static async getPlayer(discord_id) {
-        return dbSelect(
+        return this.dbSelect(
             `SELECT *
             FROM players
             WHERE discord_id = :discord_id`,
@@ -18,23 +18,19 @@ class Database {
 
     /**
      * Update a single player's row in the Players table
-     * @param {String} discord_id The id of player to update
-     * @param {Object} values Object mapping to update with pairings from KEYNAME: value
+     * @param {DemobotTypes.Player} player Object mapping to update with pairings from KEYNAME: value
      * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
      */
-    static async updatePlayer(discord_id, values) {
-        // Create the colname = value for update
-        var setVals = Object.keys(values).map((value_key) => {
-            return value_key + ' = ' + values[value_key];
-        })
+    static async updatePlayer(player) {
+        console.log("updating player");
+        console.log(player);
 
-        const set = setVals.join(',');
-
-        return dbUpdate(
+        return this.dbUpdate(
             `UPDATE PLAYERS
-            SET :set
-            WHERE discord_id = :discord_id`,
-            [set, discord_id]
+            SET DISCORD_ID = :discord_id1, NAME = :name, DEMOLITIONS = :demolitions, EXTERMINATIONS = :exterminations,
+                COUNTRY = :country, LAST_UPDATE = :last_update, AUTHORIZED = :authorized
+            WHERE discord_id = :discord_id2`,
+            [player.DISCORD_ID, player.NAME, player.DEMOLITIONS, player.EXTERMINATIONS, player.COUNTRY, player.LAST_UPDATE, player.AUTHORIZED, player.DISCORD_ID]
         );
     }
 
@@ -64,7 +60,7 @@ class Database {
                 }
             );
 
-            console.log(result.rows);
+            // console.log(result.rows);
 
             if (result.rows && result.rows.length > 0) {
                 retval = result.rows[0];
@@ -72,14 +68,13 @@ class Database {
                 retval = false;
             }
 
-            console.log(retval);
+            // console.log(retval);
         } catch (err) {
             console.error(err);
         } finally {
             if (connection) {
                 try {
                     await connection.close();
-
 
                     return retval;
                 } catch (err) {
@@ -105,18 +100,25 @@ class Database {
             connectString : config.connectString,
             });
 
-            await connection.execute(
+            // console.log("Executing query");
+            // console.log(query);
+            // console.log(values);
+
+            const result = await connection.execute(
                 query,
                 values
             );
 
+            // Commits update to DB
+            await connection.commit();
+
+            // console.log(result);
         } catch (err) {
             console.error(err);
         } finally {
             if (connection) {
                 try {
                     await connection.close();
-
                     return true;
                 } catch (err) {
                     console.error(err);

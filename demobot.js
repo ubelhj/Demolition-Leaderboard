@@ -213,7 +213,7 @@ client.on("messageCreate", async message => {
     //     return;
     // }
 
-    let player = Database.getPlayer(author);
+    let player = await Database.getPlayer(author);
 
     // Asks new users to use /update which handles new users
     if (!player) {
@@ -253,21 +253,27 @@ client.on('interactionCreate', async interaction => {
 
         const author = interaction.user.id;
 
-        const player = Database.getPlayer(author);
+        var player = await Database.getPlayer(author);
 
         if (name) {
            
             if (!player) {
                 // If the leaderboard doesn't include the author, adds them
-                // TODO INSERT PLAYER HERE
+                player = new DemobotTypes.Player({
+                    DISCORD_ID: author,
+                    NAME: name,
+                    DEMOLITIONS: 0,
+                    EXTERMINATIONS: 0,
+                    COUNTRY: null,
+                    LAST_UPDATE: null,
+                    AUTHORIZED: 0
+                });
+            
+                // TODO insert player
             } else {
                 // Leaderboard does include the author, update their name
-                Database.updatePlayer(
-                    player.DISCORD_ID,
-                    {
-                        'NAME': name
-                    }
-                );
+                // The addScores call will actually update it
+                player.NAME = name;
             }
         } else {
             // if the leaderboard doesn't include this discord ID and no name was given, returns and warns user
@@ -291,9 +297,14 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        const player = Database.getPlayer(user);
+        var player = await Database.getPlayer(user);
 
-        authorize(interaction, player, level);
+        player.AUTHORIZED = level;
+
+        await Database.updatePlayer(player);
+
+        console.log("Authorized " + player.NAME + " at level " + level);
+        interaction.reply("Authorized " + player.NAME + " at level " + level);
     }
 
     if (interaction.commandName === 'name') {
@@ -306,14 +317,26 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        nameUser(interaction, name, user);
+        var player = await Database.getPlayer(user);
+
+        // If the user isn't in the leaderboard, warns user
+        if (!player) {
+            interaction.reply("<@" + user + "> isn't in the leaderboard");
+            return;
+        }
+
+        player.NAME = name;
+
+        await Database.updatePlayer(player);
+
+        interaction.reply("Renamed <@" + user + "> to " + name);
     }
 
     if (interaction.commandName === 'country') {
         const country = interaction.options.get('country').value;
         let author = interaction.user.id;
 
-        const player = Database.getPlayer(author);
+        var player = await Database.getPlayer(author);
 
         // If the user isn't in the leaderboard, warns user
         if (!player) {
@@ -324,13 +347,10 @@ client.on('interactionCreate', async interaction => {
         // TODO insert player if none
         // TODO verify country matches 3 letter country code
 
+        player.COUNTRY = country;
+
         // Links ID to country
-        Database.updatePlayer(
-            player.DISCORD_ID,
-            {
-                'COUNTRY': country
-            }
-        );
+        await Database.updatePlayer(player);
 
         interaction.reply("Set <@" + author + ">'s country to " + country);
     }
@@ -346,20 +366,17 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        const player = Database.getPlayer(user);
+        var player = await Database.getPlayer(user);
 
         if (!player) {
             interaction.reply("<@" + user + "> isn't in the leaderboard");
             return;
         }
 
-        Database.updatePlayer(
-            player.DISCORD_ID,
-            {
-                "DEMOLITIONS": demos,
-                "EXTERMINATIONS": exterms
-            }
-        );
+        player.DEMOLITIONS = demos;
+        player.EXTERMINATIONS = exterms;
+
+        await Database.updatePlayer(player);
 
         interaction.reply("<@" + user + "> has " + demos + " demos and " + exterms + " exterms");
     }
@@ -373,7 +390,7 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        const player = Database.getPlayer(user);
+        var player = await Database.getPlayer(user);
 
         if (!player) {
             interaction.reply("<@" + user + "> isn't in the leaderboard");
@@ -396,68 +413,20 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        const player = Database.getPlayer(user);
+        var player = await Database.getPlayer(user);
 
         if (!player) {
             interaction.reply("<@" + user + "> isn't in the leaderboard");
             return;
         }
 
-        Database.updatePlayer(
-            player.DISCORD_ID,
-            {
-                "COUNTRY": country
-            }
-        );
+        player.COUNTRY = country;
+
+        await Database.updatePlayer(player);
 
         interaction.reply("Set <@" + user + ">'s country to " + country);
     }
 });
-
-/**
- * Authorizes player at a given level
- * 
- * @param {Discord.Interaction} interaction 
- * @param {DemobotTypes.Player} player 
- * @param {DemobotTypes.AuthorizationLevel} level 
- */
-function authorize(interaction, player, level) {
-    Database.updatePlayer(
-        player.DISCORD_ID,
-        {
-            "AUTHORIZED": level
-        }
-    );
-
-    console.log("Authorized " + player.NAME + " at level " + level);
-    interaction.reply("Authorized " + player.NAME + " at level " + level);
-}
-
-/**
- * Changes a user's name on the leaderboard
- * 
- * @param {Discord.Interaction} interaction 
- * @param {String} name 
- * @param {Discord.Snowflake} id 
- */
-function nameUser(interaction, name, id) {
-    var player = Database.getPlayer(id);
-
-    // If the user isn't in the leaderboard, warns user
-    if (!player) {
-        interaction.reply("<@" + id + "> isn't in the leaderboard");
-        return;
-    }
-
-    Database.updatePlayer(
-        player.DISCORD_ID,
-        {
-            "NAME": name
-        }
-    );
-
-    interaction.reply("Renamed <@" + id + "> to " + name);
-}
 
 /**
  * Processes any messages to send about milestones, and checks for authorization, then uploads scores
@@ -471,10 +440,14 @@ async function addScores(interaction, player, demos, exterms) {
     let authorized = player.AUTHORIZED;
 
     // TODO function get high scores
+    let highscores = {
+        leaderDemos: 1000000,
+        leaderExterm: 10000,
+    }
 
     // Only authorized users can upload scores with >15000 demos and/or >500 exterms
     // Needs permission to do so
-    if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_NONE) {
+    if (authorized === 0) {
         if (demos > 15000) {
             await interaction.reply("Congratulations, you have over 15k Demolitions! " +
                 "New submissions with high scores require manual review. " +
@@ -494,7 +467,7 @@ async function addScores(interaction, player, demos, exterms) {
         }
     }
 
-    if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_OVER_15K) {
+    if (authorized === 1) {
         // Checks against the top score
         // Only users authorized level 2 can update the top score
         // Prevents abuse by authorized 1 users
@@ -516,7 +489,7 @@ async function addScores(interaction, player, demos, exterms) {
     }
 
     // If user is authorized 2 (highest level), checks if the top score should be updated
-    if (authorized === DemobotTypes.AuthorizationLevel.LEVEL_TOP) {
+    if (authorized === 2) {
         let newScore = false; 
         if (demos > highscores.leaderDemos) {
             newScore = true;
@@ -536,16 +509,12 @@ async function addScores(interaction, player, demos, exterms) {
     let currTime = new Date();
     let currTimeString = currTime.toISOString();
 
-    // Adds score
-    Database.updatePlayer(
-        player.DISCORD_ID,
-        {
-            "DEMOLITIONS": demos,
-            "EXTERMINATIONS": exterms,
-            "LAST_UPDATE": currTimeString,
+    player.DEMOLITIONS = demos;
+    player.EXTERMINATIONS = exterms;
+    player.LAST_UPDATE = currTimeString;
 
-        }
-    )
+    // Adds score
+    await Database.updatePlayer(player);
 
     // TODO Insert function for history
     // leaderboard[id].History.push({
@@ -600,7 +569,7 @@ function checkMilestones(interaction, player, demos, exterms) {
  */
 function checkExtermMilestone(interaction, player, newExterms, milestone) {
     // ignore milestone if the player's already reached it
-    if (oldExterms >= milestone) {
+    if (player.EXTERMINATIONS >= milestone) {
         return false;
     }
 
