@@ -19,7 +19,7 @@ class Database {
     /**
      * Update a single player's row in the Players table
      * @param {DemobotTypes.Player} player Object mapping to update with pairings from KEYNAME: value
-     * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
+     * @returns {Boolean} Whether the update succeeded
      */
     static async updatePlayer(player) {
         console.log("updating player");
@@ -27,10 +27,26 @@ class Database {
 
         return this.dbUpdate(
             `UPDATE PLAYERS
-            SET DISCORD_ID = :discord_id1, NAME = :name, DEMOLITIONS = :demolitions, EXTERMINATIONS = :exterminations,
+            SET DISCORD_ID = :discord_id, NAME = :name, DEMOLITIONS = :demolitions, EXTERMINATIONS = :exterminations,
                 COUNTRY = :country, LAST_UPDATE = :last_update, AUTHORIZED = :authorized
-            WHERE discord_id = :discord_id2`,
-            [player.DISCORD_ID, player.NAME, player.DEMOLITIONS, player.EXTERMINATIONS, player.COUNTRY, player.LAST_UPDATE, player.AUTHORIZED, player.DISCORD_ID]
+            WHERE discord_id = :discord_id1`,
+            [...Object.values(player), player.DISCORD_ID]
+        );
+    }
+
+    /**
+     * Insert a single player row in the Players table
+     * @param {DemobotTypes.Player} player Object mapping to update with pairings from KEYNAME: value
+     * @returns {Boolean} Whether the insert succeeded
+     */
+    static async insertPlayer(player) {
+        console.log("updating player");
+        console.log(player);
+
+        return this.dbUpdate(
+            `INSERT INTO PLAYERS (DISCORD_ID, NAME, DEMOLITIONS, EXTERMINATIONS, COUNTRY, LAST_UPDATE, AUTHORIZED)
+            VALUES (:discord_id, :name, :demolitions, :exterminations, :country, :last_update, :authorized)`,
+            [Object.values(player)]
         );
     }
 
@@ -85,12 +101,12 @@ class Database {
     }
 
     /**
-     * Runs any update query on the database
+     * Runs any query with no result on the database, such as 
      * @param {String} query SQL query to run
      * @param {any[]} values Variables to bind to the sql query
-     * @returns {Boolean} whether the update succeeded
+     * @returns {Boolean} whether the change succeeded
      */
-    static async dbUpdate(query, values) {
+    static async dbExecute(query, values) {
         let connection;
 
         try {

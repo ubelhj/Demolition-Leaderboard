@@ -269,7 +269,7 @@ client.on('interactionCreate', async interaction => {
                     AUTHORIZED: 0
                 });
             
-                // TODO insert player
+                await Database.insertPlayer(player);
             } else {
                 // Leaderboard does include the author, update their name
                 // The addScores call will actually update it
@@ -344,7 +344,6 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        // TODO insert player if none
         // TODO verify country matches 3 letter country code
 
         player.COUNTRY = country;
