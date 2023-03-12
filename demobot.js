@@ -1,23 +1,13 @@
 const Discord = require("discord.js");
 const client = new Discord.Client({ intents: ['GUILDS', 'GUILD_MESSAGES'] });
 const config = require("./config.json"); 
-const oracledb = require('oracledb');
 
 const Database = require("./database");
 
 process.title = "demobot"
 
-// hold jsons
-let leaderboard;
-let highscores;
-
 // Role id for authorized moderators
 const modRoleID = '431269016322048001';
-
-const fetch = require('isomorphic-fetch');
-const Dropbox = require('dropbox').Dropbox;
-let dbx = new Dropbox({accessToken: config.dropToken, fetch: fetch});
-let failedDownload = false;
 
 // Adds timestamps to console log
 console.logCopy = console.log.bind(console);
@@ -29,8 +19,7 @@ console.log = function(data)
 
 // On startup downloads files from Dropbox to keep continuity across sessions
 client.on("ready", () => {
-    console.log("Booting")
-    download();
+    console.log("Booting");
 });
 
 // Logs into Discord
@@ -217,18 +206,6 @@ client.on("messageCreate", async message => {
     // Ensures the message starts with the prefix "D:"
     if (message.content.toUpperCase().indexOf(config.prefix) !== 0) return;
 
-    // If the previous download failed, tries again
-    if (failedDownload) {
-        download();
-    }
-
-    // If two in a row have failed, gives up and warns user
-    // Prevents overwriting of data with old data
-    if (failedDownload) {
-        await message.reply("Failed to connect to dropbox. Try again in a couple minutes");
-        return;
-    }
-
     // Command for me to change a user's history
     // Disabled for the moment as I've changed the format of history
     // if (message.content.toLowerCase().indexOf('d: h') == 0 && author === client.application?.owner.id) {
@@ -269,18 +246,6 @@ client.on("messageCreate", async message => {
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
-    // if the previous download failed, tries again
-    // if (failedDownload) {
-    //     download();
-    // }
-
-    // if two in a row have failed, gives up and warns user
-    // Prevents overwriting of data with old data
-    // if (failedDownload) {
-    //     await interaction.reply("Failed to connect to dropbox. Try again in a couple minutes");
-    //     return;
-    // }
-
     if (interaction.commandName === 'update') { 
         const demos = interaction.options.get('demolitions').value;
         const exterms = interaction.options.get('exterminations').value;
@@ -288,7 +253,7 @@ client.on('interactionCreate', async interaction => {
 
         const author = interaction.user.id;
 
-        const player = Database.getPlayer(interaction.user.id);
+        const player = Database.getPlayer(author);
 
         if (name) {
            
@@ -297,8 +262,12 @@ client.on('interactionCreate', async interaction => {
                 // TODO INSERT PLAYER HERE
             } else {
                 // Leaderboard does include the author, update their name
-                // TODO UPDATE PLAYER HERE
-                leaderboard[author].Name = name;
+                Database.updatePlayer(
+                    player.DISCORD_ID,
+                    {
+                        'NAME': name
+                    }
+                );
             }
         } else {
             // if the leaderboard doesn't include this discord ID and no name was given, returns and warns user
@@ -323,14 +292,6 @@ client.on('interactionCreate', async interaction => {
         }
 
         const player = Database.getPlayer(user);
-
-        // TODO reconsider if authorize should create the user
-        // if the leaderboard doesn't include this discord ID, returns and warns user
-        if (!player) {
-            await interaction.reply({content:"<@" + user + 
-                "> isn't on the leaderboard. Have them use /update", ephemeral: true});
-            return;
-        }
 
         authorize(interaction, player, level);
     }
@@ -360,11 +321,17 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        // Links ID to country
-        leaderboard[author].Country = country;
+        // TODO insert player if none
+        // TODO verify country matches 3 letter country code
 
-        // Uploads the updated JSON Leaderboard
-        uploadJSON(interaction);
+        // Links ID to country
+        Database.updatePlayer(
+            player.DISCORD_ID,
+            {
+                'COUNTRY': country
+            }
+        );
+
         interaction.reply("Set <@" + author + ">'s country to " + country);
     }
 
@@ -386,9 +353,14 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        leaderboard[user].Demolitions = demos;
-        leaderboard[user].Exterminations = exterms;
-        uploadJSON(interaction);
+        Database.updatePlayer(
+            player.DISCORD_ID,
+            {
+                "DEMOLITIONS": demos,
+                "EXTERMINATIONS": exterms
+            }
+        );
+
         interaction.reply("<@" + user + "> has " + demos + " demos and " + exterms + " exterms");
     }
 
@@ -408,8 +380,9 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
+        // TODO add remove function
         delete leaderboard[user];
-        uploadJSON(interaction);
+
         interaction.reply("<@" + user + "> has been removed from the leaderboard");
     }
 
@@ -430,8 +403,13 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        leaderboard[user].Country = country;
-        uploadJSON(interaction);
+        Database.updatePlayer(
+            player.DISCORD_ID,
+            {
+                "COUNTRY": country
+            }
+        );
+
         interaction.reply("Set <@" + user + ">'s country to " + country);
     }
 });
@@ -444,12 +422,15 @@ client.on('interactionCreate', async interaction => {
  * @param {DemobotTypes.AuthorizationLevel} level 
  */
 function authorize(interaction, player, level) {
-    leaderboard[id].Authorized = level;
+    Database.updatePlayer(
+        player.DISCORD_ID,
+        {
+            "AUTHORIZED": level
+        }
+    );
 
-    // Uploads the updated JSON Leaderboard
-    uploadJSON(interaction);
-    interaction.reply("Authorized " + player.NAME + " at level " + level);
     console.log("Authorized " + player.NAME + " at level " + level);
+    interaction.reply("Authorized " + player.NAME + " at level " + level);
 }
 
 /**
@@ -468,11 +449,13 @@ function nameUser(interaction, name, id) {
         return;
     }
 
-    // Links ID to name
-    leaderboard[id].Name = name;
+    Database.updatePlayer(
+        player.DISCORD_ID,
+        {
+            "NAME": name
+        }
+    );
 
-    // Uploads the updated JSON Leaderboard
-    uploadJSON(interaction);
     interaction.reply("Renamed <@" + id + "> to " + name);
 }
 
@@ -654,63 +637,6 @@ function extermMilestone(interaction, player, newExterms, milestone) {
 
 //     uploadJSON(message);
 //     message.reply("Set history for <@" + playerID + "> AKA " + leaderboard[playerID].Name);
-// }
-
-///////////////////////////////////////////
-///////// Dropbox API interactions ////////
-///////////////////////////////////////////
-
-// downloads files from Dropbox to ensure continuity over multiple sessions
-// function download() {
-//     failedDownload = false;
-
-//     // Downloads and saves dropbox files of leaderboards
-//     // Allows cross-session saving of data and cloud access from other apps
-//     dbx.filesDownload({path: "/leaderboard.json"})
-//         .then(function (data) {
-//             leaderboard = JSON.parse(data.fileBinary);
-//             console.log("Downloaded leaderboard.json");
-//         })
-//         .catch(function (err) {
-//             failedDownload = true;
-//             throw err;
-//         });
-
-//     dbx.filesDownload({path: "/highscores.json"})
-//         .then(function (data) {
-//             highscores = JSON.parse(data.fileBinary);
-//             console.log("Downloaded highscores.json");
-//         })
-//         .catch(function (err) {
-//             failedDownload = true;
-//             throw err;
-//         });
-
-//     if (failedDownload) {
-//         console.log("failed download");
-//     }
-// }
-
-// // uploads the JSON file leaderboard to Dropbox
-// function uploadJSON(message) {
-//     dbx.filesUpload({path: '/leaderboard.json', contents: JSON.stringify(leaderboard, null, "\t"), mode: "overwrite"})
-//         .catch(function (error) {
-//             message.reply("Dropbox error for JSON Leaderboard. Try same command again");
-//             console.error(error);
-//         });
-
-//     console.log("Uploaded leaderboard JSON");
-// }
-
-// // uploads the JSON file high scores to Dropbox
-// function uploadHighScores(message) {
-//     dbx.filesUpload({path: '/highscores.json', contents: JSON.stringify(highscores, null, "\t"), mode: "overwrite"})
-//         .catch(function (error) {
-//             message.reply("Dropbox error for highscores. Try same command again");
-//             console.error(error);
-//         });
-
-//     console.log("Uploaded highscores");
 // }
 
 process.on('unhandledRejection', function(err) {
