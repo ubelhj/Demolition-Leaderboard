@@ -28,7 +28,7 @@ class Database {
         return this.dbUpdate(
             `UPDATE PLAYERS
             SET DISCORD_ID = :discord_id, NAME = :name, DEMOLITIONS = :demolitions, EXTERMINATIONS = :exterminations,
-                COUNTRY = :country, LAST_UPDATE = :last_update, AUTHORIZED = :authorized
+                COUNTRY = :country, LAST_UPDATE = :last_update, AUTHORIZED = :authorized, DELETED_AT = :deleted_at
             WHERE discord_id = :discord_id1`,
             [...Object.values(player), player.DISCORD_ID]
         );
@@ -58,8 +58,8 @@ class Database {
      * @returns {Object} A single row from the database
      */
     static async dbSelect(query, values) {
-        let connection;
-        let retval;
+        var connection;
+        var retval;
 
         try {
             connection = await oracledb.getConnection( {
@@ -107,7 +107,7 @@ class Database {
      * @returns {Boolean} whether the change succeeded
      */
     static async dbExecute(query, values) {
-        let connection;
+        var connection;
 
         try {
             connection = await oracledb.getConnection( {

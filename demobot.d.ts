@@ -4,9 +4,10 @@ declare module DemobotTypes {
         NAME: string;
         DEMOLITIONS: int;
         EXTERMINATIONS: int;
-        COUNTRY: string;
+        COUNTRY: string|null;
         LAST_UPDATE: string;
         AUTHORIZED: int;
+        DELETED_AT: string|null;
     }
 
     class HistoryEntry {

@@ -34,7 +34,7 @@ client.on("messageCreate", async message => {
     // Ignores messages from bots to stop abuse
     if (message.author.bot) return;
 
-    let author = message.author.id;
+    var author = message.author.id;
 
     if (message.content.toLowerCase() === 'd: deploy' && author === client.application?.owner.id) {
         const update = {
@@ -213,7 +213,7 @@ client.on("messageCreate", async message => {
     //     return;
     // }
 
-    let player = await Database.getPlayer(author);
+    var player = await Database.getPlayer(author);
 
     // Asks new users to use /update which handles new users
     if (!player) {
@@ -230,15 +230,15 @@ client.on("messageCreate", async message => {
     const regexVal = /[dD]:\s*(\d+)\s+[eE]:\s*(\d+)/;
 
     // regex ensures proper command usage
-    let matchResults = message.content.match(regexVal);
+    var matchResults = message.content.match(regexVal);
 
     if (!matchResults) {
         message.reply("Invalid format, please update your stats with /update");
         return;
     }
 
-    let demos = parseInt(matchResults[1]);
-    let exterms = parseInt(matchResults[2]);
+    var demos = parseInt(matchResults[1]);
+    var exterms = parseInt(matchResults[2]);
 
     addScores(message, player, demos, exterms);
 });
@@ -259,14 +259,18 @@ client.on('interactionCreate', async interaction => {
            
             if (!player) {
                 // If the leaderboard doesn't include the author, adds them
+
+                var currTime = new Date();
+                var currTimeString = currTime.toISOString();
                 player = new DemobotTypes.Player({
                     DISCORD_ID: author,
                     NAME: name,
                     DEMOLITIONS: 0,
                     EXTERMINATIONS: 0,
                     COUNTRY: null,
-                    LAST_UPDATE: null,
-                    AUTHORIZED: 0
+                    LAST_UPDATE: currTimeString,
+                    AUTHORIZED: 0,
+                    DELETED_AT: null,
                 });
             
                 await Database.insertPlayer(player);
@@ -334,7 +338,7 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.commandName === 'country') {
         const country = interaction.options.get('country').value;
-        let author = interaction.user.id;
+        var author = interaction.user.id;
 
         var player = await Database.getPlayer(author);
 
@@ -344,7 +348,12 @@ client.on('interactionCreate', async interaction => {
             return;
         }
 
-        // TODO verify country matches 3 letter country code
+        var matchResults = country.match("/[A-Z]{3}/");
+
+        if (!matchResults) {
+            message.reply("Invalid format, please use a 3 letter country code such as USA");
+            return;
+        }
 
         player.COUNTRY = country;
 
@@ -436,10 +445,10 @@ client.on('interactionCreate', async interaction => {
  * @param {Number} exterms 
  */
 async function addScores(interaction, player, demos, exterms) {
-    let authorized = player.AUTHORIZED;
+    var authorized = player.AUTHORIZED;
 
     // TODO function get high scores
-    let highscores = {
+    var highscores = {
         leaderDemos: 1000000,
         leaderExterm: 10000,
     }
@@ -489,7 +498,7 @@ async function addScores(interaction, player, demos, exterms) {
 
     // If user is authorized 2 (highest level), checks if the top score should be updated
     if (authorized === 2) {
-        let newScore = false; 
+        var newScore = false; 
         if (demos > highscores.leaderDemos) {
             newScore = true;
             // TODO function to update high scores
@@ -505,8 +514,8 @@ async function addScores(interaction, player, demos, exterms) {
     // Checks for server role and nickname milestones
     checkMilestones(interaction, player, demos, exterms);
 
-    let currTime = new Date();
-    let currTimeString = currTime.toISOString();
+    var currTime = new Date();
+    var currTimeString = currTime.toISOString();
 
     player.DEMOLITIONS = demos;
     player.EXTERMINATIONS = exterms;
@@ -536,8 +545,8 @@ async function addScores(interaction, player, demos, exterms) {
  * @param {Number} exterms 
  */
 function checkMilestones(interaction, player, demos, exterms) {
-    let currentBombs = Math.floor(player.DEMOLITIONS / 10000);
-    let newBombs = Math.floor(demos / 10000);
+    var currentBombs = Math.floor(player.DEMOLITIONS / 10000);
+    var newBombs = Math.floor(demos / 10000);
     if (currentBombs < newBombs) {
         interaction.channel.send("Congrats on a " + newBombs + " bomb milestone <@" + player.DISCORD_ID + 
             ">! Please provide a screenshot of your stats. Rewards are explained here <#642467858248499212>");
@@ -545,11 +554,11 @@ function checkMilestones(interaction, player, demos, exterms) {
         return;
     }
 
-    let reachedMilestone = false;
+    var reachedMilestone = false;
     // all current milestones available. Descending order to congratulate on 
-    let milestones = [10000, 5000, 1000, 100];
-    for (let i in milestones) {
-        let milestone = milestones[i];
+    var milestones = [10000, 5000, 1000, 100];
+    for (var i in milestones) {
+        var milestone = milestones[i];
         reachedMilestone = checkExtermMilestone(interaction, player, exterms, milestone);
         // only ask user for highest new milestone
         if (reachedMilestone) {
@@ -584,8 +593,8 @@ function checkExtermMilestone(interaction, player, newExterms, milestone) {
 
 // used to upload and override player's history from discord without manual file editing
 // async function addHistory(message) {
-//     let attachments = (message.attachments);
-//     let attachmentURL;
+//     var attachments = (message.attachments);
+//     var attachmentURL;
 //     if (attachments && attachments.at(0)){
 //         attachmentURL = attachments.at(0).url;
 //     } else {
@@ -593,7 +602,7 @@ function checkExtermMilestone(interaction, player, newExterms, milestone) {
 //         return;
 //     }
 
-//     let playerID;
+//     var playerID;
 //     if (message.mentions.users && message.mentions.users.at(0)) {
 //         playerID = message.mentions.users.at(0).id
 //     } else {
@@ -604,9 +613,9 @@ function checkExtermMilestone(interaction, player, newExterms, milestone) {
 //     console.log( attachmentURL );
 //     console.log( playerID );
 
-//     let attachmentRequest = await fetch(attachmentURL);
+//     var attachmentRequest = await fetch(attachmentURL);
 
-//     let attachmentJSON = await attachmentRequest.json();
+//     var attachmentJSON = await attachmentRequest.json();
 
 //     leaderboard[playerID].History = attachmentJSON;
 
