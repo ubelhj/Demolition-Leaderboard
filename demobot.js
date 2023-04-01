@@ -292,7 +292,7 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.commandName === 'authorize') {
         // Allows moderators to authorize users to post their scores
-        // Unauthorized users cannot upload scores >15000 demos and/or 500 exterms
+        // Unauthorized users cannot upload scores >10000 demos and/or 100 exterms
         const user = interaction.options.get('user').value;
         const level = interaction.options.get('level').value;
 
@@ -453,11 +453,11 @@ async function addScores(interaction, player, demos, exterms) {
         leaderExterm: 10000,
     }
 
-    // Only authorized users can upload scores with >15000 demos and/or >500 exterms
+    // Only authorized users can upload scores with >10000 demos and/or >100 exterms
     // Needs permission to do so
     if (authorized === 0) {
-        if (demos > 15000) {
-            await interaction.reply("Congratulations, you have over 15k Demolitions! " +
+        if (demos > 10000) {
+            await interaction.reply("Congratulations, you have over 10k Demolitions! " +
                 "New submissions with high scores require manual review. " +
                 "Please send a screenshot of your stats to this channel. " +
                 "Mods usually notice and approve updates within a few hours, " +
@@ -465,8 +465,8 @@ async function addScores(interaction, player, demos, exterms) {
             return;
         }
 
-        if (exterms > 500) {
-            await interaction.reply("Congratulations, you have over 500 Exterminations! " +
+        if (exterms > 100) {
+            await interaction.reply("Congratulations, you have over 100 Exterminations! " +
                 "New submissions with high scores require manual review. " +
                 "Please send a screenshot of your stats to this channel. " +
                 "Mods usually notice and approve updates within a few hours, " +

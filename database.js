@@ -1,12 +1,10 @@
 const oracledb = require('oracledb');
 const config = require("./config.json"); 
 
-// Caches user scores to prevent constant checks to server and speed up
+// Caches user scores to prevent constant checks to server
 var cachedLeaderboard = {};
 
 class Database {
-    
-
     /**
      * Gets a single player's row in the Players table
      * @param {string} discord_id The id of player to search for
