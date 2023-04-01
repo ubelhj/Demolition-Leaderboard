@@ -1,19 +1,34 @@
 const oracledb = require('oracledb');
 const config = require("./config.json"); 
 
+// Caches user scores to prevent constant checks to server and speed up
+var cachedLeaderboard = {};
+
 class Database {
+    
+
     /**
      * Gets a single player's row in the Players table
      * @param {string} discord_id The id of player to search for
      * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
      */
     static async getPlayer(discord_id) {
-        return this.dbSelect(
+        if (cachedLeaderboard[discord_id]) {
+            return cachedLeaderboard[discord_id];
+        }
+
+        const dbResult = this.dbSelect(
             `SELECT *
             FROM players
             WHERE discord_id = :discord_id`,
             [discord_id]
         );
+
+        if (dbResult) {
+            cachedLeaderboard[discord_id] = dbResult;
+        }
+
+        return dbResult;
     }
 
     /**
@@ -25,7 +40,9 @@ class Database {
         console.log("updating player");
         console.log(player);
 
-        return this.dbUpdate(
+        cachedLeaderboard[discord_id] = player;
+
+        return this.dbExecute(
             `UPDATE PLAYERS
             SET DISCORD_ID = :discord_id, NAME = :name, DEMOLITIONS = :demolitions, EXTERMINATIONS = :exterminations,
                 COUNTRY = :country, LAST_UPDATE = :last_update, AUTHORIZED = :authorized, DELETED_AT = :deleted_at
@@ -40,10 +57,12 @@ class Database {
      * @returns {Boolean} Whether the insert succeeded
      */
     static async insertPlayer(player) {
-        console.log("updating player");
+        console.log("inserting player");
         console.log(player);
 
-        return this.dbUpdate(
+        cachedLeaderboard[discord_id] = player;
+
+        return this.dbExecute(
             `INSERT INTO PLAYERS (DISCORD_ID, NAME, DEMOLITIONS, EXTERMINATIONS, COUNTRY, LAST_UPDATE, AUTHORIZED)
             VALUES (:discord_id, :name, :demolitions, :exterminations, :country, :last_update, :authorized)`,
             [Object.values(player)]
@@ -101,7 +120,7 @@ class Database {
     }
 
     /**
-     * Runs any query with no result on the database, such as 
+     * Runs any query with no result on the database, such as an update
      * @param {String} query SQL query to run
      * @param {any[]} values Variables to bind to the sql query
      * @returns {Boolean} whether the change succeeded
