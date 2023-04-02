@@ -6,7 +6,7 @@ declare module DemobotTypes {
         EXTERMINATIONS: int;
         COUNTRY: string|null;
         LAST_UPDATE: string;
-        AUTHORIZED: int;
+        AUTHORIZED: AuthorizationLevel;
         DELETED_AT: string|null;
     }
 

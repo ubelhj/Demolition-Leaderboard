@@ -344,14 +344,14 @@ client.on('interactionCreate', async interaction => {
 
         // If the user isn't in the leaderboard, warns user
         if (!player) {
-            message.reply("<@" + author + "> you aren't on the leaderboard! Make sure to /update!");
+            interaction.reply("<@" + author + "> you aren't on the leaderboard! Make sure to /update!");
             return;
         }
 
         var matchResults = country.match("/[A-Z]{3}/");
 
         if (!matchResults) {
-            message.reply("Invalid format, please use a 3 letter country code such as USA");
+            interaction.reply("Invalid format, please use a 3 letter country code such as USA");
             return;
         }
 
@@ -447,10 +447,16 @@ client.on('interactionCreate', async interaction => {
 async function addScores(interaction, player, demos, exterms) {
     var authorized = player.AUTHORIZED;
 
-    // TODO function get high scores
+    var currTime = new Date();
+    var currTimeString = currTime.toISOString();
+
+    player.DEMOLITIONS = demos;
+    player.EXTERMINATIONS = exterms;
+    player.LAST_UPDATE = currTimeString;
+
     var highscores = {
-        leaderDemos: 1000000,
-        leaderExterm: 10000,
+        leaderDemos: Database.getTopPlayer('demos'),
+        leaderExterm: Database.getTopPlayer('exterms'),
     }
 
     // Only authorized users can upload scores with >10000 demos and/or >100 exterms
@@ -498,30 +504,19 @@ async function addScores(interaction, player, demos, exterms) {
 
     // If user is authorized 2 (highest level), checks if the top score should be updated
     if (authorized === 2) {
-        var newScore = false; 
         if (demos > highscores.leaderDemos) {
-            newScore = true;
-            // TODO function to update high scores
-            highscores.leaderDemos = demos;
+            Database.setTopPlayer('demos', player);
         }
 
         if (exterms > highscores.leaderExterm) {
-            newScore = true;
-            highscores.leaderExterm = demos;
+            Database.setTopPlayer('exterms', player);
         }
     }
 
     // Checks for server role and nickname milestones
     checkMilestones(interaction, player, demos, exterms);
 
-    var currTime = new Date();
-    var currTimeString = currTime.toISOString();
-
-    player.DEMOLITIONS = demos;
-    player.EXTERMINATIONS = exterms;
-    player.LAST_UPDATE = currTimeString;
-
-    // Adds score
+    // Adds score to database
     await Database.updatePlayer(player);
 
     // TODO Insert function for history
@@ -541,8 +536,8 @@ async function addScores(interaction, player, demos, exterms) {
  * 
  * @param {Discord.Interaction} interaction 
  * @param {DemobotTypes.Player} player 
- * @param {Number} demos 
- * @param {Number} exterms 
+ * @param {Number} demos The player's old demolition count
+ * @param {Number} exterms The player's old extermination count
  */
 function checkMilestones(interaction, player, demos, exterms) {
     var currentBombs = Math.floor(player.DEMOLITIONS / 10000);

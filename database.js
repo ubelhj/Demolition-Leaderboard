@@ -3,6 +3,8 @@ const config = require("./config.json");
 
 // Caches user scores to prevent constant checks to server
 var cachedLeaderboard = {};
+var cachedTopDemos = null;
+var cachedTopExterms = null;
 
 class Database {
     /**
@@ -27,6 +29,63 @@ class Database {
         }
 
         return dbResult;
+    }
+
+    /**
+     * Gets the top player's row in the Players table for a single type
+     * @param {string} type The id of player to search for
+     * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
+     */
+    static async getTopPlayer(type) {
+        if (type === "demos") {
+            if (cachedTopDemos) {
+                return cachedTopDemos;
+            }
+
+            const dbResult = this.dbSelect(
+                `SELECT *
+                FROM players
+                ORDER BY DEMOLITIONS DESC
+                FETCH FIRST 1 ROW ONLY`
+            );
+
+            cachedTopDemos = dbResult;
+
+            return cachedTopDemos;
+        } else if (type === "exterms") {
+            if (cachedTopExterms) {
+                return cachedTopExterms;
+            }
+
+            const dbResult = this.dbSelect(
+                `SELECT *
+                FROM players
+                ORDER BY EXTERMINATIONS DESC
+                FETCH FIRST 1 ROW ONLY`
+            );
+
+            cachedTopExterms = dbResult;
+
+            return cachedTopExterms;
+        } else {
+            console.log("Error retrieving top player of type " + type);
+        }
+    }
+
+    /**
+     * Gets the top player's row in the Players table for a single type
+     * @param {string} type The id of player to search for
+     * @param {DemobotTypes.Player} player new top scorer
+     */
+    static async setTopPlayer(type, player) {
+        if (type === "demos") {
+
+            cachedTopDemos = player;
+        } else if (type === "exterms") {
+            cachedTopExterms = player;
+        } else {
+            console.log("Error setting top player of type " + type);
+        }
     }
 
     /**
