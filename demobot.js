@@ -262,7 +262,7 @@ client.on('interactionCreate', async interaction => {
 
                 var currTime = new Date();
                 var currTimeString = currTime.toISOString();
-                player = new DemobotTypes.Player({
+                player = {
                     DISCORD_ID: author,
                     NAME: name,
                     DEMOLITIONS: 0,
@@ -271,7 +271,7 @@ client.on('interactionCreate', async interaction => {
                     LAST_UPDATE: currTimeString,
                     AUTHORIZED: 0,
                     DELETED_AT: null,
-                });
+                };
             
                 await Database.insertPlayer(player);
             } else {
@@ -447,12 +447,8 @@ client.on('interactionCreate', async interaction => {
 async function addScores(interaction, player, demos, exterms) {
     var authorized = player.AUTHORIZED;
 
-    var currTime = new Date();
-    var currTimeString = currTime.toISOString();
-
     player.DEMOLITIONS = demos;
     player.EXTERMINATIONS = exterms;
-    player.LAST_UPDATE = currTimeString;
 
     var highscores = await {
         leaderDemos: await Database.getTopPlayer('demos'),
@@ -519,12 +515,7 @@ async function addScores(interaction, player, demos, exterms) {
     // Adds score to database
     await Database.updatePlayer(player);
 
-    // TODO Insert function for history
-    // leaderboard[id].History.push({
-    //     "Demolitions": demos,
-    //     "Exterminations": exterms,
-    //     "Time": currTimeString
-    // });
+    await Database.insertHistory(player);
 
     await interaction.reply("<@" + player.DISCORD_ID + "> has " + demos + " demos and " + exterms + " exterms\n" +
         "Check the leaderboard at https://demolition-leaderboard.netlify.app/");

@@ -99,6 +99,11 @@ class Database {
         console.log("updating player");
         console.log(player);
 
+        var currTime = new Date();
+        var currTimeString = currTime.toISOString();
+
+        player.LAST_UPDATE = currTimeString;
+
         cachedLeaderboard[player.DISCORD_ID] = player;
 
         return this.dbExecute(
@@ -112,12 +117,17 @@ class Database {
 
     /**
      * Insert a single player row in the Players table
-     * @param {DemobotTypes.Player} player Object mapping to update with pairings from KEYNAME: value
+     * @param {DemobotTypes.Player} player Player to add
      * @returns {Promise<Boolean>} Whether the insert succeeded
      */
     static async insertPlayer(player) {
         console.log("inserting player");
         console.log(player);
+
+        var currTime = new Date();
+        var currTimeString = currTime.toISOString();
+
+        player.LAST_UPDATE = currTimeString;
 
         cachedLeaderboard[player.DISCORD_ID] = player;
 
@@ -125,6 +135,25 @@ class Database {
             `INSERT INTO PLAYERS (DISCORD_ID, NAME, DEMOLITIONS, EXTERMINATIONS, COUNTRY, LAST_UPDATE, AUTHORIZED, DELETED_AT)
             VALUES (:discord_id, :name, :demolitions, :exterminations, :country, :last_update, :authorized, NULL)`,
             [Object.values(player)]
+        );
+    }
+
+     /**
+     * Insert a single history entry row in the History table
+     * @param {DemobotTypes.Player} player Player whose entry this is
+     * @returns {Promise<Boolean>} Whether the insert succeeded
+     */
+     static async insertHistory(player) {
+        console.log("inserting history entry for player");
+        console.log(player);
+
+        var currTime = new Date();
+        var currTimeString = currTime.toISOString();
+
+        return this.dbExecute(
+            `INSERT INTO HISTORY (DISCORD_ID, DEMOLITIONS, EXTERMINATIONS, TIMESTAMP, DELETED_AT)
+            VALUES (:discord_id, :demolitions, :exterminations, :last_update, NULL)`,
+            [player.DISCORD_ID, player.DEMOLITIONS, player.EXTERMINATIONS, currTimeString]
         );
     }
 

@@ -15,17 +15,18 @@ declare module DemobotTypes {
         DEMOLITIONS: int;
         EXTERMINATIONS: int;
         TIMESTAMP: string;
+        DELETED_AT: string|null;
     }
 
     /**
      * Levels of allowed scores
-     * LEVEL_NONE allows less than 15k demos and 500 exterms
-     * LEVEL_OVER_15K allows any score less than the highest score
+     * LEVEL_NONE allows less than 10k demos and 100 exterms
+     * LEVEL_OVER_10K allows any score less than the highest score
      * LEVEL_TOP allows any score
      */
     enum AuthorizationLevel {
         LEVEL_NONE = 0,
-        LEVEL_OVER_15K = 1,
+        LEVEL_OVER_10K = 1,
         LEVEL_TOP = 2,
     }
 }
