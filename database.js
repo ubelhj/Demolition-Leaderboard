@@ -10,7 +10,7 @@ class Database {
     /**
      * Gets a single player's row in the Players table
      * @param {string} discord_id The id of player to search for
-     * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
+     * @returns {Promise<DemobotTypes.Player|false>} Json object of row in PLAYERS table in db
      */
     static async getPlayer(discord_id) {
         if (cachedLeaderboard[discord_id]) {
@@ -34,7 +34,7 @@ class Database {
     /**
      * Gets the top player's row in the Players table for a single type
      * @param {string} type The id of player to search for
-     * @returns {DemobotTypes.Player|false} Json object of row in PLAYERS table in db
+     * @returns {Promise<DemobotTypes.Player|false>} Json object of row in PLAYERS table in db
      */
     static async getTopPlayer(type) {
         if (type === "demos") {
@@ -46,7 +46,8 @@ class Database {
                 `SELECT *
                 FROM players
                 ORDER BY DEMOLITIONS DESC
-                FETCH FIRST 1 ROW ONLY`
+                FETCH FIRST 1 ROW ONLY`,
+                []
             );
 
             cachedTopDemos = dbResult;
@@ -61,7 +62,8 @@ class Database {
                 `SELECT *
                 FROM players
                 ORDER BY EXTERMINATIONS DESC
-                FETCH FIRST 1 ROW ONLY`
+                FETCH FIRST 1 ROW ONLY`,
+                []
             );
 
             cachedTopExterms = dbResult;
@@ -91,13 +93,13 @@ class Database {
     /**
      * Update a single player's row in the Players table
      * @param {DemobotTypes.Player} player Object mapping to update with pairings from KEYNAME: value
-     * @returns {Boolean} Whether the update succeeded
+     * @returns {Promise<Boolean>} Whether the update succeeded
      */
     static async updatePlayer(player) {
         console.log("updating player");
         console.log(player);
 
-        cachedLeaderboard[discord_id] = player;
+        cachedLeaderboard[player.DISCORD_ID] = player;
 
         return this.dbExecute(
             `UPDATE PLAYERS
@@ -111,17 +113,17 @@ class Database {
     /**
      * Insert a single player row in the Players table
      * @param {DemobotTypes.Player} player Object mapping to update with pairings from KEYNAME: value
-     * @returns {Boolean} Whether the insert succeeded
+     * @returns {Promise<Boolean>} Whether the insert succeeded
      */
     static async insertPlayer(player) {
         console.log("inserting player");
         console.log(player);
 
-        cachedLeaderboard[discord_id] = player;
+        cachedLeaderboard[player.DISCORD_ID] = player;
 
         return this.dbExecute(
-            `INSERT INTO PLAYERS (DISCORD_ID, NAME, DEMOLITIONS, EXTERMINATIONS, COUNTRY, LAST_UPDATE, AUTHORIZED)
-            VALUES (:discord_id, :name, :demolitions, :exterminations, :country, :last_update, :authorized)`,
+            `INSERT INTO PLAYERS (DISCORD_ID, NAME, DEMOLITIONS, EXTERMINATIONS, COUNTRY, LAST_UPDATE, AUTHORIZED, DELETED_AT)
+            VALUES (:discord_id, :name, :demolitions, :exterminations, :country, :last_update, :authorized, NULL)`,
             [Object.values(player)]
         );
     }
@@ -131,7 +133,7 @@ class Database {
      * Runs any select query on the database
      * @param {String} query SQL query to run
      * @param {any[]} values Variables to bind to the sql query
-     * @returns {Object} A single row from the database
+     * @returns {Promise<Object>} A single row from the database
      */
     static async dbSelect(query, values) {
         var connection;
@@ -180,7 +182,7 @@ class Database {
      * Runs any query with no result on the database, such as an update
      * @param {String} query SQL query to run
      * @param {any[]} values Variables to bind to the sql query
-     * @returns {Boolean} whether the change succeeded
+     * @returns {Promise<Boolean>} whether the change succeeded
      */
     static async dbExecute(query, values) {
         var connection;

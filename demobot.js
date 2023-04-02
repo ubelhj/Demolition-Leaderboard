@@ -19,7 +19,7 @@ console.log = function(data)
 
 // On startup downloads files from Dropbox to keep continuity across sessions
 client.on("ready", () => {
-    console.log("Booting");
+    console.log("Booted and listening!");
 });
 
 // Logs into Discord
@@ -454,9 +454,9 @@ async function addScores(interaction, player, demos, exterms) {
     player.EXTERMINATIONS = exterms;
     player.LAST_UPDATE = currTimeString;
 
-    var highscores = {
-        leaderDemos: Database.getTopPlayer('demos'),
-        leaderExterm: Database.getTopPlayer('exterms'),
+    var highscores = await {
+        leaderDemos: await Database.getTopPlayer('demos'),
+        leaderExterm: await Database.getTopPlayer('exterms'),
     }
 
     // Only authorized users can upload scores with >10000 demos and/or >100 exterms
