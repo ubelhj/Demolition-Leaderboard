@@ -1,7 +1,7 @@
 {
-  "name": "demoBot",
-  "version": "1.0.0",
-  "description": "",
+  "name": "demo_bot",
+  "version": "1.0.1",
+  "description": "A discord bot for the Boom Squad Discord's Demo Leaderboard",
   "main": "demobot.js",
   "scripts": {
     "start": "node demobot.js",

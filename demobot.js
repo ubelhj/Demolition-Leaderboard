@@ -9,7 +9,6 @@ let leaderboard;
 let highscores;
 
 // holds discord IDs of authorized moderators
-//const mods = require("./moderators.json");
 const modRoleID = '431269016322048001';
 
 const fetch = require('isomorphic-fetch');
@@ -435,8 +434,11 @@ function authorize(id, level, message) {
 
     // Uploads the updated JSON Leaderboard
     uploadJSON(message);
-    message.reply("Authorized " + leaderboard[id].Name + " at level " + level);
-    console.log("Authorized " + leaderboard[id].Name + " at level " + level);
+    var reply = `Authorized <@${id}> at level ${level}`;
+    console.log(reply);
+    reply += `\n<@${id}> please run /update again to have your scores appear on the leaderboard!`;
+    message.reply(reply);
+
 }
 
 function nameUser(name, id, message) {
